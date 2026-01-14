@@ -8,7 +8,7 @@ defmodule Absinthe.Object.MixProject do
     [
       app: :absinthe_object,
       version: @version,
-      elixir: "~> 1.14",
+      elixir: "~> 1.15",
       elixirc_paths: elixirc_paths(Mix.env()),
       consolidate_protocols: Mix.env() != :test,
       start_permanent: Mix.env() == :prod,

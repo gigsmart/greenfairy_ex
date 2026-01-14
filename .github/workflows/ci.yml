@@ -8,8 +8,8 @@ on:
 
 env:
   MIX_ENV: test
-  ELIXIR_VERSION: "1.16"
-  OTP_VERSION: "26"
+  ELIXIR_VERSION: "1.17"
+  OTP_VERSION: "27"
 
 jobs:
   test:
@@ -19,13 +19,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          # Latest versions
+        elixir: ["1.15", "1.16", "1.17", "1.18"]
+        otp: ["25", "26", "27"]
+        exclude:
+          # OTP 27 requires Elixir 1.17+
+          - elixir: "1.15"
+            otp: "27"
           - elixir: "1.16"
-            otp: "26"
-          # Minimum supported versions
-          - elixir: "1.14"
-            otp: "25"
+            otp: "27"
 
     steps:
       - name: Checkout code
