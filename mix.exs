@@ -41,7 +41,10 @@ defmodule Absinthe.Object.MixProject do
           Absinthe.Object.Deferred.Definition.Union,
           Absinthe.Object.Deferred.Schema,
           # Macro-only modules
-          Absinthe.Object.Extensions.Auth.Macros
+          Absinthe.Object.Extensions.Auth.Macros,
+          # Relay macros - primarily compile-time
+          Absinthe.Object.Relay.Node,
+          Absinthe.Object.Relay.Mutation
         ]
       ],
       preferred_cli_env: [

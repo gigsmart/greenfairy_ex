@@ -178,7 +178,8 @@ defmodule Absinthe.Object.Extensions.CQL.OperatorInputTest do
       ast_list = OperatorInput.generate_all()
 
       assert is_list(ast_list)
-      assert length(ast_list) == 10  # Number of operator types
+      # Number of operator types
+      assert length(ast_list) == 10
     end
 
     test "each generated AST is valid quoted expression" do

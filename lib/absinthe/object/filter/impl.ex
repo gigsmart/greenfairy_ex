@@ -85,12 +85,13 @@ defmodule Absinthe.Object.Filter.Impl do
     filter_name = filter_module_expanded |> Module.split() |> List.last()
 
     # Generate a unique module name for this implementation
-    impl_module_name_ast = quote do
-      Module.concat([
-        __MODULE__,
-        String.to_atom("Impl_" <> unquote(filter_name))
-      ])
-    end
+    impl_module_name_ast =
+      quote do
+        Module.concat([
+          __MODULE__,
+          String.to_atom("Impl_" <> unquote(filter_name))
+        ])
+      end
 
     quote do
       @__filter_impls__ unquote(filter_module_expanded)

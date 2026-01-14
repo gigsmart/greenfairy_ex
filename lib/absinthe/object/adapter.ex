@@ -291,6 +291,7 @@ defmodule Absinthe.Object.Adapter do
       # Ecto schema - auto-detect from repo
       ecto_schema?(struct_module) ->
         repo = opts[:repo] || infer_repo(struct_module)
+
         if repo do
           Absinthe.Object.Adapters.Ecto.Detector.adapter_for!(repo, opts)
         else

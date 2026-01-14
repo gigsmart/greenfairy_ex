@@ -54,7 +54,7 @@ defmodule Absinthe.Object.Adapters.Ecto.Detector do
       %Absinthe.Object.Adapters.Ecto.Postgres{repo: MyApp.Repo, extensions: [:postgis]}
 
   """
-  @spec adapter_for(module(), keyword()) :: struct() | {:error, :unknown_adapter}
+  @spec adapter_for(module(), keyword()) :: struct() | {:error, {:unknown_adapter, module()}}
   def adapter_for(repo, opts \\ []) do
     ecto_adapter = repo.__adapter__()
 

@@ -523,6 +523,7 @@ Full documentation is available at [HexDocs](https://hexdocs.pm/absinthe_object)
 - [CQL (Filterable Queries)](https://hexdocs.pm/absinthe_object/cql.html)
 - [Connections (Pagination)](https://hexdocs.pm/absinthe_object/connections.html)
 - [Relay Support](https://hexdocs.pm/absinthe_object/relay.html)
+- [Global Configuration](https://hexdocs.pm/absinthe_object/global-config.html)
 - [Operations](https://hexdocs.pm/absinthe_object/operations.html)
 
 ## License

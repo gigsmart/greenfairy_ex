@@ -39,3 +39,4 @@ absinthe_object-*.tar
 examples/*/_build/
 examples/*/deps/
 examples/*/mix.lock
+priv/plts/

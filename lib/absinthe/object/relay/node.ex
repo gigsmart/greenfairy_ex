@@ -31,10 +31,25 @@ defmodule Absinthe.Object.Relay.Node do
         end
       end
 
-  ## Custom Node Resolution
+  ## Default Node Resolution
 
-  By default, nodes are resolved using your adapter's `get_by_id` function.
-  You can customize resolution per-type:
+  Configure a default resolver for all node types:
+
+      use Absinthe.Object.Relay,
+        repo: MyApp.Repo,
+        node_resolver: fn type_module, id, ctx ->
+          struct = type_module.__absinthe_object_struct__()
+          MyApp.Repo.get(struct, id)
+        end
+
+  The resolver receives:
+  - `type_module` - The GraphQL type module (e.g., MyApp.GraphQL.Types.User)
+  - `id` - The local ID (already parsed to integer if numeric)
+  - `ctx` - The Absinthe context
+
+  ## Per-Type Node Resolution
+
+  Override the default for specific types:
 
       type "User", struct: MyApp.User do
         implements Absinthe.Object.BuiltIns.Node, node: true
@@ -61,6 +76,7 @@ defmodule Absinthe.Object.Relay.Node do
   ## Options
 
   - `:repo` - The Ecto repo to use for fetching (if using Ecto adapter)
+  - `:node_resolver` - Default resolver function `fn type_module, id, ctx -> ... end`
 
   """
   defmacro __using__(opts \\ []) do
@@ -184,23 +200,34 @@ defmodule Absinthe.Object.Relay.Node do
   # Fetch the node using the type's resolver or default adapter
   defp fetch_node(type_module, local_id, context, opts) do
     cond do
-      # Check for custom node resolver
+      # Check for per-type node resolver
       function_exported?(type_module, :__node_resolver__, 0) ->
         resolver = type_module.__node_resolver__()
-        resolver.(local_id, context)
+        wrap_result(resolver.(local_id, context))
 
-      # Check for struct and use adapter
+      # Check for default node resolver in opts
+      opts[:node_resolver] ->
+        resolver = opts[:node_resolver]
+        wrap_result(resolver.(type_module, local_id, context))
+
+      # Check for struct and use Ecto repo
       function_exported?(type_module, :__absinthe_object_struct__, 0) ->
         struct = type_module.__absinthe_object_struct__()
-        fetch_with_adapter(struct, local_id, context, opts)
+        fetch_with_repo(struct, local_id, context, opts)
 
       true ->
         {:error, :no_resolver}
     end
   end
 
-  # Fetch using the Ecto adapter pattern
-  defp fetch_with_adapter(struct, local_id, context, opts) do
+  # Wrap resolver results to ensure consistent {:ok, _} / {:error, _} format
+  defp wrap_result({:ok, _} = result), do: result
+  defp wrap_result({:error, _} = result), do: result
+  defp wrap_result(nil), do: {:error, :not_found}
+  defp wrap_result(result), do: {:ok, result}
+
+  # Fetch using the Ecto repo
+  defp fetch_with_repo(struct, local_id, context, opts) do
     repo = opts[:repo] || context[:repo]
 
     if repo do

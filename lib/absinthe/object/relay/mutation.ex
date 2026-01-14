@@ -57,6 +57,7 @@ defmodule Absinthe.Object.Relay.Mutation do
   defmacro relay_mutation(name, do: block) do
     quote do
       require Absinthe.Object.Relay.Mutation
+
       Absinthe.Object.Relay.Mutation.__define_relay_mutation__(
         unquote(name),
         unquote(Macro.escape(block))
@@ -88,7 +89,7 @@ defmodule Absinthe.Object.Relay.Mutation do
 
       # Generate mutation field
       field unquote(name), unquote(payload_type_name) do
-        unquote(if desc, do: quote(do: @desc unquote(desc)), else: nil)
+        unquote(if desc, do: quote(do: @desc(unquote(desc))), else: nil)
 
         arg :input, non_null(unquote(input_type_name))
 

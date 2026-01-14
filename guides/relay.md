@@ -27,6 +27,27 @@ This adds:
 - `node(id: ID!)` query field
 - `nodes(ids: [ID!]!)` query field for batch fetching
 
+### With Default Node Resolution
+
+Configure a default resolver for all node types:
+
+```elixir
+defmodule MyApp.GraphQL.Schema do
+  use Absinthe.Object.Schema, discover: [MyApp.GraphQL]
+  use Absinthe.Object.Relay,
+    repo: MyApp.Repo,
+    node_resolver: fn type_module, id, ctx ->
+      # type_module is the GraphQL type module (e.g., MyApp.GraphQL.Types.User)
+      # id is the local ID (already parsed to integer if numeric)
+      # ctx is the Absinthe context
+      struct = type_module.__absinthe_object_struct__()
+      MyApp.Repo.get(struct, id)
+    end
+end
+```
+
+The default node resolver is called when a type doesn't define its own `node_resolver`.
+
 ### Define Node-Implementing Types
 
 ```elixir
