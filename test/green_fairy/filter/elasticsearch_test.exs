@@ -1,9 +1,9 @@
 defmodule GreenFairy.Filter.ElasticsearchTest do
   use ExUnit.Case, async: true
 
+  alias GreenFairy.Adapters.Elasticsearch, as: ESAdapter
   alias GreenFairy.Filter
   alias GreenFairy.Filter.Elasticsearch.Helpers
-  alias GreenFairy.Adapters.Elasticsearch, as: ESAdapter
   alias GreenFairy.Filters.{Basic, Geo, Text}
 
   # Force the Elasticsearch filter module to load and register implementations

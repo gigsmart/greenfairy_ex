@@ -1,8 +1,8 @@
 defmodule GreenFairy.Filter.Ecto.PostgresTest do
   use ExUnit.Case, async: true
 
-  alias GreenFairy.Filter
   alias GreenFairy.Adapters.Ecto.Postgres, as: PostgresAdapter
+  alias GreenFairy.Filter
   alias GreenFairy.Filters.{Basic, Geo, Text}
 
   # Force the Postgres filter module to load and register implementations

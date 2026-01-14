@@ -20,7 +20,7 @@ defmodule GreenFairy.Filter.Ecto.Postgres do
   use GreenFairy.Filter.Impl,
     adapter: GreenFairy.Adapters.Ecto.Postgres
 
-  alias GreenFairy.Filters.{Geo, Text, Basic}
+  alias GreenFairy.Filters.{Basic, Geo, Text}
 
   # ===========================================================================
   # Geo Filters
@@ -57,8 +57,8 @@ defmodule GreenFairy.Filter.Ecto.Postgres do
   end
 
   filter_impl Geo.WithinDistance do
-    alias GreenFairy.Filters.Geo
     alias GreenFairy.Adapters.Ecto.Postgres, as: PostgresAdapter
+    alias GreenFairy.Filters.Geo
 
     def apply(%PostgresAdapter{} = adapter, %{point: point, distance: dist, unit: unit}, field, query) do
       # Delegate to Near implementation

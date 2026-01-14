@@ -69,16 +69,49 @@
           ## Refactoring Opportunities
           #
           {Credo.Check.Refactor.Apply, []},
-          {Credo.Check.Refactor.CondStatements, []},
+          {Credo.Check.Refactor.CondStatements,
+           [
+             files: %{
+               excluded: [
+                 # CQL filter input has simple cond used for clarity
+                 "lib/green_fairy/extensions/cql/filter_input.ex"
+               ]
+             }
+           ]},
           # Allow slightly higher complexity for compile-time code generation with macros
-          {Credo.Check.Refactor.CyclomaticComplexity, [max_complexity: 15]},
-          {Credo.Check.Refactor.FunctionArity, []},
+          {Credo.Check.Refactor.CyclomaticComplexity,
+           [
+             max_complexity: 15,
+             files: %{
+               excluded: [
+                 # CQL code generation is inherently complex
+                 "lib/green_fairy/extensions/cql.ex"
+               ]
+             }
+           ]},
+          {Credo.Check.Refactor.FunctionArity,
+           [
+             files: %{
+               excluded: [
+                 # CQL code generation passes many params for clarity
+                 "lib/green_fairy/extensions/cql.ex"
+               ]
+             }
+           ]},
           {Credo.Check.Refactor.LongQuoteBlocks, []},
           {Credo.Check.Refactor.MatchInCondition, []},
           {Credo.Check.Refactor.MapJoin, []},
           {Credo.Check.Refactor.NegatedConditionsInUnless, []},
           {Credo.Check.Refactor.NegatedConditionsWithElse, []},
-          {Credo.Check.Refactor.Nesting, []},
+          {Credo.Check.Refactor.Nesting,
+           [
+             files: %{
+               excluded: [
+                 # Relay node macro has deep nesting for query resolution
+                 "lib/green_fairy/relay/node.ex"
+               ]
+             }
+           ]},
           {Credo.Check.Refactor.UnlessWithElse, []},
           {Credo.Check.Refactor.WithClauses, []},
 
@@ -122,6 +155,10 @@
                  "lib/green_fairy/deferred/compiler.ex",
                  "lib/green_fairy/adapter.ex",
                  "lib/green_fairy/filter/impl.ex",
+                 "lib/green_fairy/type.ex",
+                 # Relay modules create atoms from type names at compile time
+                 "lib/green_fairy/relay/node.ex",
+                 "lib/green_fairy/relay/mutation.ex",
                  # Mix tasks create atoms from module names at compile time
                  "lib/mix/tasks/",
                  # Test files - atom creation is controlled

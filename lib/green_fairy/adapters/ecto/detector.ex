@@ -25,7 +25,7 @@ defmodule GreenFairy.Adapters.Ecto.Detector do
 
   """
 
-  alias GreenFairy.Adapters.Ecto.{Postgres, MySQL, SQLite}
+  alias GreenFairy.Adapters.Ecto.{MySQL, Postgres, SQLite}
 
   @adapter_mapping %{
     Ecto.Adapters.Postgres => Postgres,

@@ -27,8 +27,8 @@ defmodule GreenFairy.Filter.Elasticsearch do
   use GreenFairy.Filter.Impl,
     adapter: GreenFairy.Adapters.Elasticsearch
 
-  alias GreenFairy.Filters.{Geo, Text, Basic}
   alias GreenFairy.Filter.Elasticsearch.Helpers
+  alias GreenFairy.Filters.{Basic, Geo, Text}
 
   # ===========================================================================
   # Geo Filters

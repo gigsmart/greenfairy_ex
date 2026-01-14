@@ -2,7 +2,7 @@ defmodule GreenFairy.Adapters.EctoTest do
   use ExUnit.Case, async: true
 
   alias GreenFairy.Adapters.Ecto
-  alias GreenFairy.Adapters.Ecto.{Postgres, MySQL, SQLite, Detector}
+  alias GreenFairy.Adapters.Ecto.{Detector, MySQL, Postgres, SQLite}
 
   # Mock Ecto schema for testing the Ecto adapter
   defmodule MockEctoSchema do

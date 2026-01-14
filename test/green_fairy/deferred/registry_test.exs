@@ -92,7 +92,7 @@ defmodule GreenFairy.Deferred.RegistryTest do
   describe "clear/0" do
     test "clears all registrations" do
       Registry.register(TestType, :object)
-      assert length(Registry.all_modules()) > 0
+      assert Registry.all_modules() != []
 
       Registry.clear()
       assert Registry.all_modules() == []
