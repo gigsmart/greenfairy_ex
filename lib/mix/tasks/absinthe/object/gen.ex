@@ -8,8 +8,8 @@ defmodule Mix.Tasks.Absinthe.Object.Gen do
 
       email:string:required          # field :email, :string, null: false
       name:string                    # field :name, :string
-      posts:has_many:Post            # has_many :posts, MyApp.GraphQL.Types.Post
-      organization:belongs_to:Org   # belongs_to :organization, MyApp.GraphQL.Types.Organization
+      posts:list:Post                # field :posts, list_of(:post)
+      organization:ref:Org           # field :organization, :organization
       friends:connection:User        # connection :friends, MyApp.GraphQL.Types.User
       status:enum:UserStatus         # field :status, MyApp.GraphQL.Enums.UserStatus
 
@@ -67,19 +67,25 @@ defmodule Mix.Tasks.Absinthe.Object.Gen do
       [name, type] ->
         %{name: name, type: parse_type(type), modifier: nil, related: nil}
 
-      [name, type, modifier] when modifier in ~w(required has_many has_one belongs_to connection enum) ->
+      [name, type, modifier] when modifier in ~w(required list ref connection enum) ->
         case modifier do
           "required" ->
             %{name: name, type: parse_type(type), modifier: :required, related: nil}
 
-          rel when rel in ~w(has_many has_one belongs_to connection) ->
-            %{name: name, type: String.to_atom(rel), modifier: nil, related: type}
+          "list" ->
+            %{name: name, type: :list, modifier: nil, related: type}
+
+          "ref" ->
+            %{name: name, type: :ref, modifier: nil, related: type}
+
+          "connection" ->
+            %{name: name, type: :connection, modifier: nil, related: type}
 
           "enum" ->
             %{name: name, type: :enum, modifier: nil, related: type}
         end
 
-      [name, rel, related] when rel in ~w(has_many has_one belongs_to connection enum) ->
+      [name, rel, related] when rel in ~w(list ref connection enum) ->
         %{name: name, type: String.to_atom(rel), modifier: nil, related: related}
 
       _ ->
@@ -88,19 +94,14 @@ defmodule Mix.Tasks.Absinthe.Object.Gen do
   end
 
   @doc "Converts a field map to code string"
-  def field_to_code(%{type: :has_many, name: name, related: related}) do
-    type_module = resolve_type_module(related)
-    "has_many :#{name}, #{type_module}"
+  def field_to_code(%{type: :list, name: name, related: related}) do
+    type_identifier = related |> Macro.underscore() |> String.to_atom()
+    "field :#{name}, list_of(:#{type_identifier})"
   end
 
-  def field_to_code(%{type: :has_one, name: name, related: related}) do
-    type_module = resolve_type_module(related)
-    "has_one :#{name}, #{type_module}"
-  end
-
-  def field_to_code(%{type: :belongs_to, name: name, related: related}) do
-    type_module = resolve_type_module(related)
-    "belongs_to :#{name}, #{type_module}"
+  def field_to_code(%{type: :ref, name: name, related: related}) do
+    type_identifier = related |> Macro.underscore() |> String.to_atom()
+    "field :#{name}, :#{type_identifier}"
   end
 
   def field_to_code(%{type: :connection, name: name, related: related}) do

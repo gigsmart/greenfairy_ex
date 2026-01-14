@@ -14,14 +14,14 @@ defmodule Mix.Tasks.Absinthe.Object.GenTest do
                Gen.parse_field("email:string:required")
     end
 
-    test "parses has_many relationship" do
-      assert %{name: "posts", type: :has_many, modifier: nil, related: "Post"} =
-               Gen.parse_field("posts:has_many:Post")
+    test "parses list relationship" do
+      assert %{name: "posts", type: :list, modifier: nil, related: "Post"} =
+               Gen.parse_field("posts:list:Post")
     end
 
-    test "parses belongs_to relationship" do
-      assert %{name: "org", type: :belongs_to, modifier: nil, related: "Organization"} =
-               Gen.parse_field("org:belongs_to:Organization")
+    test "parses ref relationship" do
+      assert %{name: "org", type: :ref, modifier: nil, related: "Organization"} =
+               Gen.parse_field("org:ref:Organization")
     end
 
     test "parses connection" do
@@ -51,18 +51,16 @@ defmodule Mix.Tasks.Absinthe.Object.GenTest do
       assert Gen.field_to_code(field) == "field :email, :string, null: false"
     end
 
-    test "generates has_many code" do
-      field = %{name: "posts", type: :has_many, modifier: nil, related: "Post"}
+    test "generates list relationship code" do
+      field = %{name: "posts", type: :list, modifier: nil, related: "Post"}
       code = Gen.field_to_code(field)
-      assert code =~ "has_many :posts"
-      assert code =~ "Types.Post"
+      assert code == "field :posts, list_of(:post)"
     end
 
-    test "generates belongs_to code" do
-      field = %{name: "org", type: :belongs_to, modifier: nil, related: "Organization"}
+    test "generates ref relationship code" do
+      field = %{name: "org", type: :ref, modifier: nil, related: "Organization"}
       code = Gen.field_to_code(field)
-      assert code =~ "belongs_to :org"
-      assert code =~ "Types.Organization"
+      assert code == "field :org, :organization"
     end
 
     test "generates connection code" do

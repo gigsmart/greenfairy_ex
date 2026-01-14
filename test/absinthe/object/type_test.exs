@@ -245,14 +245,10 @@ defmodule Absinthe.Object.TypeTest do
       field :id, non_null(:id)
       field :name, :string
 
-      # Test has_many relationship
-      has_many(:posts, PostType)
-
-      # Test has_one relationship
-      has_one(:profile, ProfileType)
-
-      # Test belongs_to with options
-      belongs_to(:organization, OrganizationType, source: :custom_source)
+      # Association fields - adapter provides default DataLoader resolution
+      field :posts, list_of(:post)
+      field :profile, :profile
+      field :organization, :organization
     end
   end
 
@@ -272,23 +268,22 @@ defmodule Absinthe.Object.TypeTest do
     end
   end
 
-  describe "relationship macros" do
-    test "has_many generates list_of field" do
+  describe "association fields" do
+    test "list_of field for has-many relationships" do
       type = Absinthe.Schema.lookup_type(RelationshipSchema, :author)
       assert Map.has_key?(type.fields, :posts)
-      # Field should exist with correct identifier
       posts_field = type.fields[:posts]
       assert posts_field != nil
     end
 
-    test "has_one generates singular field" do
+    test "singular field for has-one relationships" do
       type = Absinthe.Schema.lookup_type(RelationshipSchema, :author)
       assert Map.has_key?(type.fields, :profile)
       profile_field = type.fields[:profile]
       assert profile_field != nil
     end
 
-    test "belongs_to generates field with correct type" do
+    test "singular field for belongs-to relationships" do
       type = Absinthe.Schema.lookup_type(RelationshipSchema, :author)
       assert Map.has_key?(type.fields, :organization)
       org_field = type.fields[:organization]

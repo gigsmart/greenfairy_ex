@@ -39,7 +39,8 @@ defmodule Absinthe.Object.Type do
 
       import Absinthe.Object.Type, only: [type: 2, type: 3, authorize: 1]
       import Absinthe.Object.Field.Connection, only: [connection: 2, connection: 3]
-      import Absinthe.Object.Field.Loader, only: [loader: 1]
+      # loader is only available inside has_many/has_one/belongs_to blocks
+      # field blocks should use resolve for custom logic
 
       Module.register_attribute(__MODULE__, :absinthe_object_type, accumulate: false)
       Module.register_attribute(__MODULE__, :absinthe_object_fields, accumulate: true)
@@ -304,53 +305,19 @@ defmodule Absinthe.Object.Type do
     end
   end
 
-  # Transform has_many relationship
-  defp transform_statement({:has_many, _meta, [field_name, type_module_ast | rest]}, env) do
-    opts = List.first(rest) || []
-    type_module = Macro.expand(type_module_ast, env)
-    type_identifier = type_module.__absinthe_object_identifier__()
-
+  # Transform loader macro inside field blocks - converts to batch resolver
+  defp transform_statement({:loader, _meta, [func]}, _env) do
     quote do
-      field unquote(field_name), list_of(unquote(type_identifier)) do
-        resolve Absinthe.Object.Field.Dataloader.resolver(
-                  unquote(type_module),
-                  unquote(field_name),
-                  unquote(opts)
-                )
-      end
-    end
-  end
+      resolve fn parent, args, %{context: context} ->
+        batch_fn = unquote(func)
 
-  # Transform has_one relationship
-  defp transform_statement({:has_one, _meta, [field_name, type_module_ast | rest]}, env) do
-    opts = List.first(rest) || []
-    type_module = Macro.expand(type_module_ast, env)
-    type_identifier = type_module.__absinthe_object_identifier__()
-
-    quote do
-      field unquote(field_name), unquote(type_identifier) do
-        resolve Absinthe.Object.Field.Dataloader.resolver(
-                  unquote(type_module),
-                  unquote(field_name),
-                  unquote(opts)
-                )
-      end
-    end
-  end
-
-  # Transform belongs_to relationship
-  defp transform_statement({:belongs_to, _meta, [field_name, type_module_ast | rest]}, env) do
-    opts = List.first(rest) || []
-    type_module = Macro.expand(type_module_ast, env)
-    type_identifier = type_module.__absinthe_object_identifier__()
-
-    quote do
-      field unquote(field_name), unquote(type_identifier) do
-        resolve Absinthe.Object.Field.Dataloader.resolver(
-                  unquote(type_module),
-                  unquote(field_name),
-                  unquote(opts)
-                )
+        Absinthe.Resolution.Helpers.batch(
+          {Absinthe.Object.Field.Loader, :__batch_loader__, [batch_fn, args, context]},
+          parent,
+          fn results ->
+            {:ok, Map.get(results, parent)}
+          end
+        )
       end
     end
   end

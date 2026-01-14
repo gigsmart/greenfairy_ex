@@ -1,127 +1,88 @@
 defmodule Absinthe.Object.Field.Loader do
   @moduledoc """
-  Custom loader support for field resolution.
+  Custom batch loading for fields.
 
-  Provides a `loader` macro that can be used within field blocks to define
-  custom batch loading functions, replacing the default DataLoader behavior.
+  ## Design
 
-  ## Usage
+  All fields use the `field` macro. Resolution is determined by:
+  - **`resolve`** - Single-item resolver (receives one parent)
+  - **`loader`** - Batch loader (receives list of parents)
+  - **Default** - Adapter provides default (Map.get for scalars, DataLoader for associations)
 
-  Within a field definition, use `loader` to provide a custom batch function:
+  ## Custom Batch Loader
+
+  Use `loader` within field blocks for custom batch loading:
 
       field :nearby_gigs, list_of(:gig) do
         arg :location, non_null(:geo_point)
         arg :radius, :integer, default_value: 10
 
-        loader fn worker, args, ctx ->
-          MyApp.Gigs.batch_load_nearby(worker.id, args.location, args.radius)
+        loader fn workers, args, ctx ->
+          # Receives LIST of parent objects
+          # Returns map of parent => results OR list in same order as parents
+          MyApp.Gigs.batch_load_nearby(workers, args.location, args.radius)
         end
       end
 
-  ## Function Signatures
+  The loader function receives:
+  - `parents` - List of parent objects being resolved (batched together)
+  - `args` - The field arguments
+  - `context` - The GraphQL context
 
-  The loader function can have different arities:
+  Must return either:
+  - A map of `parent => result`
+  - A list of results in the same order as parents
 
-  **2-arity** - `(parent, args)` - Simple loader without context:
+  ## Custom Resolver
 
-      loader fn user, args ->
-        MyApp.load_posts(user.id, args)
+  For single-item resolution, use Absinthe's `resolve`:
+
+      field :full_name, :string do
+        resolve fn user, _args, _ctx ->
+          {:ok, "\#{user.first_name} \#{user.last_name}"}
+        end
       end
 
-  **3-arity** - `(parent, args, context)` - Full access to context:
+  ## Mutual Exclusivity
 
-      loader fn user, args, ctx ->
-        MyApp.load_posts(user.id, args, ctx[:current_user])
-      end
-
-  ## Module/Function Reference
-
-  You can also reference a module and function:
-
-      loader {MyApp.Loaders.Gigs, :nearby}
-
-  The function will be called with `(parent, args, context)`.
-
-  ## DataLoader Integration
-
-  For batch loading that integrates with DataLoader, use `dataloader/0` instead:
-
-      field :posts, list_of(:post) do
-        dataloader()  # Uses adapter-detected source
-      end
-
-      field :active_posts, list_of(:post) do
-        dataloader source: :custom_source, args: %{status: :active}
-      end
+  A field cannot have both `resolve` and `loader`. Use one or the other.
 
   """
 
   @doc """
-  Defines a custom loader function for a field.
+  Defines a custom batch loader for relationship fields.
+
+  The function receives a list of parent objects and should return
+  a map of `parent => result` or a list in the same order as parents.
 
   ## Examples
 
-      # Anonymous function
-      loader fn parent, args, ctx ->
-        MyApp.batch_load(parent.id, args)
+      has_many :posts, PostType do
+        loader fn users, args, ctx ->
+          # Return map of user => posts
+          MyApp.Posts.batch_load_for_users(users, args)
+        end
       end
 
-      # Module/function reference
-      loader {MyApp.Loaders, :load_items}
+      has_many :nearby_gigs, GigType do
+        arg :location, non_null(:geo_point)
+
+        loader fn workers, args, _ctx ->
+          workers
+          |> Enum.map(&{&1, MyApp.Gigs.find_nearby(&1.id, args.location)})
+          |> Map.new()
+        end
+      end
 
   """
   defmacro loader(func) do
-    case func do
-      {module, function} when is_atom(function) ->
-        # Module/function tuple
-        quote do
-          resolve fn parent, args, %{context: context} ->
-            apply(unquote(module), unquote(function), [parent, args, context])
-          end
-        end
-
-      _ ->
-        # Anonymous function or function capture
-        quote do
-          resolve fn parent, args, %{context: context} ->
-            Absinthe.Object.Field.Loader.__invoke_loader__(unquote(func), parent, args, context)
-          end
-        end
-    end
-  end
-
-  @doc false
-  def __invoke_loader__(loader_fn, parent, args, context) do
-    case :erlang.fun_info(loader_fn, :arity) do
-      {:arity, 2} -> loader_fn.(parent, args)
-      {:arity, 3} -> loader_fn.(parent, args, context)
-      _ -> raise ArgumentError, "loader function must have arity 2 or 3"
-    end
-  end
-
-  @doc """
-  Creates a batch loader that groups multiple calls together.
-
-  This is useful when you want custom batching logic but still want
-  to batch multiple parent objects together.
-
-  ## Example
-
-      field :stats, :user_stats do
-        batch_loader fn user_ids, args, ctx ->
-          MyApp.Stats.batch_load(user_ids, args)
-        end
-      end
-
-  """
-  defmacro batch_loader(func) do
     quote do
       resolve fn parent, args, %{context: context} ->
         batch_fn = unquote(func)
 
-        # Use Absinthe's batch helper
+        # Use Absinthe's batch helper for proper batching
         Absinthe.Resolution.Helpers.batch(
-          {__MODULE__, :__batch_loader__, [batch_fn, args, context]},
+          {Absinthe.Object.Field.Loader, :__batch_loader__, [batch_fn, args, context]},
           parent,
           fn results ->
             {:ok, Map.get(results, parent)}
@@ -133,7 +94,12 @@ defmodule Absinthe.Object.Field.Loader do
 
   @doc false
   def __batch_loader__(batch_fn, args, context, parents) do
-    results = batch_fn.(parents, args, context)
+    results =
+      case :erlang.fun_info(batch_fn, :arity) do
+        {:arity, 2} -> batch_fn.(parents, args)
+        {:arity, 3} -> batch_fn.(parents, args, context)
+        _ -> raise ArgumentError, "loader function must have arity 2 or 3"
+      end
 
     # Convert results to a map keyed by parent if it's a list
     case results do
