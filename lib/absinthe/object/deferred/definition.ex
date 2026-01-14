@@ -24,7 +24,7 @@ defmodule Absinthe.Object.Deferred.Definition do
             description: String.t() | nil,
             null: boolean(),
             resolve: term() | nil,
-            args: [Arg.t()] | nil,
+            args: [Absinthe.Object.Deferred.Definition.Arg.t()] | nil,
             deprecation_reason: String.t() | nil
           }
 
@@ -68,7 +68,7 @@ defmodule Absinthe.Object.Deferred.Definition do
             description: String.t() | nil,
             interfaces: [module()],
             fields: [Field.t()],
-            connections: [Connection.t()]
+            connections: [Absinthe.Object.Deferred.Definition.Connection.t()]
           }
   end
 
