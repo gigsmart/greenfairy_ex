@@ -51,12 +51,10 @@ defmodule Absinthe.Object.Registry do
   defp ensure_lock_table do
     # Create the lock table if it doesn't exist
     # This is idempotent - if table exists, will raise but we catch it
-    try do
-      :ets.new(@lock_table, [:named_table, :public, :set])
-    catch
-      # Table already exists
-      :error, :badarg -> :ok
-    end
+    :ets.new(@lock_table, [:named_table, :public, :set])
+  catch
+    # Table already exists
+    :error, :badarg -> :ok
   end
 
   defp acquire_lock do

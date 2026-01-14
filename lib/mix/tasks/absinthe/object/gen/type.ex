@@ -132,12 +132,10 @@ defmodule Mix.Tasks.Absinthe.Object.Gen.Type do
         Gen.default_implements()
       end
 
-    (default ++ custom)
-    |> Enum.map(fn
+    Enum.map_join(default ++ custom, "\n    ", fn
       mod when is_atom(mod) -> "implements #{inspect(mod)}"
       str when is_binary(str) -> "implements #{Gen.resolve_interface_module(str)}"
     end)
-    |> Enum.join("\n    ")
   end
 
   defp parse_implements_opt(nil), do: []
@@ -151,19 +149,13 @@ defmodule Mix.Tasks.Absinthe.Object.Gen.Type do
   defp build_fields([]), do: ""
 
   defp build_fields(fields) do
-    fields
-    |> Enum.map(&Gen.field_to_code/1)
-    |> Enum.join("\n    ")
+    Enum.map_join(fields, "\n    ", &Gen.field_to_code/1)
   end
 
   defp build_relationships([]), do: ""
 
   defp build_relationships(fields) do
-    code =
-      fields
-      |> Enum.map(&Gen.field_to_code/1)
-      |> Enum.join("\n    ")
-
+    code = Enum.map_join(fields, "\n    ", &Gen.field_to_code/1)
     "\n    #{code}"
   end
 

@@ -97,10 +97,9 @@ defmodule Mix.Tasks.Absinthe.Object.Gen.Interface do
         ""
 
       interfaces ->
-        interfaces
-        |> Enum.map(fn str -> "implements #{Gen.resolve_interface_module(str)}" end)
-        |> Enum.join("\n    ")
-        |> then(&(&1 <> "\n\n    "))
+        Enum.map_join(interfaces, "\n    ", fn str ->
+          "implements #{Gen.resolve_interface_module(str)}"
+        end) <> "\n\n    "
     end
   end
 
@@ -115,9 +114,7 @@ defmodule Mix.Tasks.Absinthe.Object.Gen.Interface do
   defp build_fields([]), do: ""
 
   defp build_fields(fields) do
-    fields
-    |> Enum.map(&Gen.field_to_code/1)
-    |> Enum.join("\n    ")
+    Enum.map_join(fields, "\n    ", &Gen.field_to_code/1)
   end
 
   defp format_code(code) do

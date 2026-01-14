@@ -110,15 +110,17 @@ defmodule Absinthe.Object.Field.Dataloader do
 
       loader
       |> Dataloader.load(source_name, batch_key, parent)
-      |> on_load(fn loader ->
-        result = Dataloader.get(loader, source_name, batch_key, parent)
+      |> on_load(&handle_dataloader_result(&1, source_name, batch_key, parent, callback))
+    end
+  end
 
-        if callback do
-          callback.(result)
-        else
-          {:ok, result}
-        end
-      end)
+  defp handle_dataloader_result(loader, source_name, batch_key, parent, callback) do
+    result = Dataloader.get(loader, source_name, batch_key, parent)
+
+    if callback do
+      callback.(result)
+    else
+      {:ok, result}
     end
   end
 

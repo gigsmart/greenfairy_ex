@@ -70,9 +70,7 @@ defmodule Mix.Tasks.Absinthe.Object.Gen.Enum do
   end
 
   defp build_values(values) do
-    values
-    |> Enum.map(fn val -> "value :#{val}" end)
-    |> Enum.join("\n    ")
+    Enum.map_join(values, "\n    ", fn val -> "value :#{val}" end)
   end
 
   defp format_code(code) do

@@ -78,9 +78,7 @@ defmodule Mix.Tasks.Absinthe.Object.Gen.Input do
   defp build_fields([]), do: ""
 
   defp build_fields(fields) do
-    fields
-    |> Enum.map(&Gen.field_to_code/1)
-    |> Enum.join("\n    ")
+    Enum.map_join(fields, "\n    ", &Gen.field_to_code/1)
   end
 
   defp format_code(code) do
