@@ -80,11 +80,12 @@ type "Worker", struct: MyApp.Worker do
 
   # Custom batch loader
   field :nearby_gigs, list_of(:gig) do
-    arg :location, non_null(:geo_point)
+    arg :location, non_null(:point)  # Uses Geo.Point scalar
+    arg :radius_meters, :integer, default_value: 1000
 
     loader fn workers, args, ctx ->
       worker_ids = Enum.map(workers, & &1.id)
-      gigs = MyApp.Gigs.find_nearby(worker_ids, args.location)
+      gigs = MyApp.Gigs.find_nearby(worker_ids, args.location, args.radius_meters)
 
       Enum.group_by(gigs, & &1.worker_id)
       |> Map.new(fn {worker_id, worker_gigs} ->
@@ -244,31 +245,50 @@ end
 
 ### Scalars with CQL Operators
 
-Define custom filtering operators for your scalar types:
+Define custom filtering operators for your scalar types. This example uses
+the [`geo`](https://hex.pm/packages/geo) library for geographic data:
 
 ```elixir
-defmodule MyApp.GraphQL.Scalars.GeoPoint do
+defmodule MyApp.GraphQL.Scalars.Point do
   use Absinthe.Object.Scalar
 
-  scalar "GeoPoint" do
-    parse &parse_point/2
-    serialize &serialize_point/1
+  @moduledoc "GraphQL scalar for Geo.Point from the geo library"
 
-    # Define available operators
-    operators [:eq, :near, :within_radius]
+  scalar "Point" do
+    description "A geographic point (longitude, latitude)"
 
-    # Define how each operator works
-    filter :near, fn field, value, opts ->
-      distance = opts[:distance] || 10_000
-      {:geo, :st_dwithin, field, value, distance}
+    parse fn
+      %Absinthe.Blueprint.Input.Object{fields: fields}, _ ->
+        lng = get_field(fields, "lng")
+        lat = get_field(fields, "lat")
+        {:ok, %Geo.Point{coordinates: {lng, lat}, srid: 4326}}
+      _, _ ->
+        :error
     end
 
-    filter :within_radius, fn field, %{center: center, radius: radius} ->
-      {:geo, :st_dwithin, field, center, radius}
+    serialize fn %Geo.Point{coordinates: {lng, lat}} ->
+      %{lng: lng, lat: lat}
+    end
+
+    # Define available operators
+    operators [:eq, :near, :within_distance]
+
+    # PostGIS-compatible filter using ST_DWithin
+    filter :near, fn field, %Geo.Point{} = point, opts ->
+      distance_meters = opts[:distance] || 1000
+      {:fragment, "ST_DWithin(?::geography, ?::geography, ?)", field, point, distance_meters}
+    end
+
+    filter :within_distance, fn field, %{point: point, distance: distance} ->
+      {:fragment, "ST_DWithin(?::geography, ?::geography, ?)", field, point, distance}
     end
   end
 
-  # ...
+  defp get_field(fields, name) do
+    Enum.find_value(fields, fn %{name: n, input_value: %{value: v}} ->
+      if n == name, do: v
+    end)
+  end
 end
 ```
 

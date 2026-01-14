@@ -282,13 +282,13 @@ Use `loader` for efficient batch loading:
 ```elixir
 type "Worker", struct: MyApp.Worker do
   field :nearby_gigs, list_of(:gig) do
-    arg :location, non_null(:geo_point)
-    arg :radius, :integer, default_value: 10
+    arg :location, non_null(:point)  # Uses Geo.Point scalar
+    arg :radius_meters, :integer, default_value: 1000
 
     # Batch loader receives all parents at once
     loader fn workers, args, ctx ->
       worker_ids = Enum.map(workers, & &1.id)
-      gigs = MyApp.Gigs.find_nearby(worker_ids, args.location, args.radius)
+      gigs = MyApp.Gigs.find_nearby(worker_ids, args.location, args.radius_meters)
 
       # Return a map of parent -> result
       Enum.group_by(gigs, & &1.worker_id)
@@ -313,45 +313,49 @@ end
 
 ## Custom Scalars with CQL Operators
 
-Define custom scalar types with their own filtering operators:
+Define custom scalar types with their own filtering operators. This example uses
+the [`geo`](https://hex.pm/packages/geo) library for geographic data:
 
 ```elixir
-defmodule MyApp.GraphQL.Scalars.GeoPoint do
+defmodule MyApp.GraphQL.Scalars.Point do
   use Absinthe.Object.Scalar
 
-  scalar "GeoPoint" do
+  @moduledoc "GraphQL scalar for Geo.Point from the geo library"
+
+  scalar "Point" do
+    description "A geographic point (longitude, latitude)"
+
     parse fn
       %Absinthe.Blueprint.Input.Object{fields: fields}, _ ->
-        lat = Enum.find_value(fields, fn %{name: n, input_value: %{value: v}} ->
-          if n == "lat", do: v
-        end)
-        lng = Enum.find_value(fields, fn %{name: n, input_value: %{value: v}} ->
-          if n == "lng", do: v
-        end)
-        {:ok, %{lat: lat, lng: lng}}
-      _, _ -> :error
+        lng = get_field(fields, "lng") || get_field(fields, "longitude")
+        lat = get_field(fields, "lat") || get_field(fields, "latitude")
+        {:ok, %Geo.Point{coordinates: {lng, lat}, srid: 4326}}
+      _, _ ->
+        :error
     end
 
-    serialize fn point ->
-      %{lat: point.lat, lng: point.lng}
+    serialize fn %Geo.Point{coordinates: {lng, lat}} ->
+      %{lng: lng, lat: lat}
     end
 
     # Define available CQL operators
-    operators [:eq, :near, :within_radius, :within_bounds]
+    operators [:eq, :near, :within_distance]
 
-    # Define how each operator applies filters
-    filter :near, fn field, value, opts ->
-      distance = opts[:distance] || 10_000
-      {:geo, :st_dwithin, field, value, distance}
+    # PostGIS-compatible filter using ST_DWithin
+    filter :near, fn field, %Geo.Point{} = point, opts ->
+      distance_meters = opts[:distance] || 1000
+      {:fragment, "ST_DWithin(?::geography, ?::geography, ?)", field, point, distance_meters}
     end
 
-    filter :within_radius, fn field, %{center: center, radius: radius} ->
-      {:geo, :st_dwithin, field, center, radius}
+    filter :within_distance, fn field, %{point: point, distance: distance} ->
+      {:fragment, "ST_DWithin(?::geography, ?::geography, ?)", field, point, distance}
     end
+  end
 
-    filter :within_bounds, fn field, bounds ->
-      {:geo, :st_within, field, bounds}
-    end
+  defp get_field(fields, name) do
+    Enum.find_value(fields, fn %{name: n, input_value: %{value: v}} ->
+      if n == name, do: v
+    end)
   end
 end
 ```

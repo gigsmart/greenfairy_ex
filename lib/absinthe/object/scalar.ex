@@ -25,31 +25,48 @@ defmodule Absinthe.Object.Scalar do
 
   ## CQL Operators
 
-  Define custom operators for filtering on this scalar type:
+  Define custom operators for filtering on this scalar type. This example uses
+  the `geo` library from Hex (https://hex.pm/packages/geo):
 
-      defmodule MyApp.GraphQL.Scalars.GeoPoint do
+      defmodule MyApp.GraphQL.Scalars.Point do
         use Absinthe.Object.Scalar
 
-        scalar "GeoPoint" do
-          parse &parse_point/2
-          serialize &serialize_point/1
+        @moduledoc "GraphQL scalar for Geo.Point from the geo library"
+
+        scalar "Point" do
+          description "A geographic point (longitude, latitude)"
+
+          parse fn
+            %Absinthe.Blueprint.Input.Object{fields: fields}, _ ->
+              lng = get_field(fields, "lng") || get_field(fields, "longitude")
+              lat = get_field(fields, "lat") || get_field(fields, "latitude")
+              {:ok, %Geo.Point{coordinates: {lng, lat}, srid: 4326}}
+            _, _ ->
+              :error
+          end
+
+          serialize fn %Geo.Point{coordinates: {lng, lat}} ->
+            %{lng: lng, lat: lat}
+          end
 
           # Define available operators for CQL
-          operators [:eq, :near, :within_radius, :within_bounds]
+          operators [:eq, :near, :within_distance]
 
-          # Define how to apply each operator
-          filter :near, fn field, value, opts ->
-            distance = opts[:distance] || 10
-            {:geo, :st_dwithin, field, value, distance}
+          # PostGIS-compatible filter using ST_DWithin
+          filter :near, fn field, %Geo.Point{} = point, opts ->
+            distance_meters = opts[:distance] || 1000
+            {:fragment, "ST_DWithin(?::geography, ?::geography, ?)", field, point, distance_meters}
           end
 
-          filter :within_radius, fn field, %{center: center, radius: radius} ->
-            {:geo, :st_dwithin, field, center, radius}
+          filter :within_distance, fn field, %{point: point, distance: distance} ->
+            {:fragment, "ST_DWithin(?::geography, ?::geography, ?)", field, point, distance}
           end
+        end
 
-          filter :within_bounds, fn field, bounds ->
-            {:geo, :st_within, field, bounds}
-          end
+        defp get_field(fields, name) do
+          Enum.find_value(fields, fn %{name: n, input_value: %{value: v}} ->
+            if n == name, do: v
+          end)
         end
       end
 
@@ -80,8 +97,8 @@ defmodule Absinthe.Object.Scalar do
 
   ## Example
 
-      scalar "GeoPoint" do
-        operators [:eq, :near, :within_radius]
+      scalar "Point" do
+        operators [:eq, :near, :within_distance]
         # ...
       end
 

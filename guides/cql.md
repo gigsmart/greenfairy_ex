@@ -146,40 +146,49 @@ ops = UserType.__cql_authorized_operators_for__(:name, object, ctx)
 
 ## Custom Scalar Operators
 
-Define CQL operators on custom scalar types:
+Define CQL operators on custom scalar types. This example uses the
+[`geo`](https://hex.pm/packages/geo) library for geographic data with PostGIS:
 
 ```elixir
-defmodule MyApp.GraphQL.Scalars.GeoPoint do
+defmodule MyApp.GraphQL.Scalars.Point do
   use Absinthe.Object.Scalar
 
-  scalar "GeoPoint" do
-    parse &parse_point/2
-    serialize &serialize_point/1
+  @moduledoc "GraphQL scalar for Geo.Point from the geo library"
+
+  scalar "Point" do
+    description "A geographic point (longitude, latitude)"
+
+    parse fn
+      %Absinthe.Blueprint.Input.Object{fields: fields}, _ ->
+        lng = get_field(fields, "lng")
+        lat = get_field(fields, "lat")
+        {:ok, %Geo.Point{coordinates: {lng, lat}, srid: 4326}}
+      _, _ ->
+        :error
+    end
+
+    serialize fn %Geo.Point{coordinates: {lng, lat}} ->
+      %{lng: lng, lat: lat}
+    end
 
     # Define operators available for filtering
-    operators [:eq, :near, :within_radius, :within_bounds]
+    operators [:eq, :near, :within_distance]
 
-    # Define how each operator works
-    filter :near, fn field, value, opts ->
-      distance = opts[:distance] || 10_000
-      {:geo, :st_dwithin, field, value, distance}
+    # PostGIS-compatible filter using ST_DWithin
+    filter :near, fn field, %Geo.Point{} = point, opts ->
+      distance_meters = opts[:distance] || 1000
+      {:fragment, "ST_DWithin(?::geography, ?::geography, ?)", field, point, distance_meters}
     end
 
-    filter :within_radius, fn field, %{center: center, radius: radius} ->
-      {:geo, :st_dwithin, field, center, radius}
-    end
-
-    filter :within_bounds, fn field, bounds ->
-      {:geo, :st_within, field, bounds}
+    filter :within_distance, fn field, %{point: point, distance: distance} ->
+      {:fragment, "ST_DWithin(?::geography, ?::geography, ?)", field, point, distance}
     end
   end
 
-  defp parse_point(%{fields: fields}, _) do
-    # ... parse logic
-  end
-
-  defp serialize_point(point) do
-    # ... serialize logic
+  defp get_field(fields, name) do
+    Enum.find_value(fields, fn %{name: n, input_value: %{value: v}} ->
+      if n == name, do: v
+    end)
   end
 end
 ```
@@ -192,7 +201,7 @@ type "Location", struct: MyApp.Location do
 
   field :id, non_null(:id)
   field :name, :string
-  field :coordinates, :geo_point  # Uses custom operators
+  field :coordinates, :point  # Uses Geo.Point with custom operators
 end
 ```
 

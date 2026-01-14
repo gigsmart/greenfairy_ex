@@ -14,13 +14,13 @@ defmodule Absinthe.Object.Field.Loader do
   Use `loader` within field blocks for custom batch loading:
 
       field :nearby_gigs, list_of(:gig) do
-        arg :location, non_null(:geo_point)
-        arg :radius, :integer, default_value: 10
+        arg :location, non_null(:point)  # Uses Geo.Point scalar
+        arg :radius_meters, :integer, default_value: 1000
 
         loader fn workers, args, ctx ->
           # Receives LIST of parent objects
           # Returns map of parent => results OR list in same order as parents
-          MyApp.Gigs.batch_load_nearby(workers, args.location, args.radius)
+          MyApp.Gigs.batch_load_nearby(workers, args.location, args.radius_meters)
         end
       end
 
@@ -57,15 +57,15 @@ defmodule Absinthe.Object.Field.Loader do
 
   ## Examples
 
-      has_many :posts, PostType do
+      field :posts, list_of(:post) do
         loader fn users, args, ctx ->
           # Return map of user => posts
           MyApp.Posts.batch_load_for_users(users, args)
         end
       end
 
-      has_many :nearby_gigs, GigType do
-        arg :location, non_null(:geo_point)
+      field :nearby_gigs, list_of(:gig) do
+        arg :location, non_null(:point)  # Uses Geo.Point scalar
 
         loader fn workers, args, _ctx ->
           workers
