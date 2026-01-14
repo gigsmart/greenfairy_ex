@@ -174,9 +174,11 @@ defmodule MyApp.GraphQL.Types.User do
   type "User", struct: MyApp.User do
     # Define which fields are visible based on object and context
     authorize fn user, ctx ->
+      current_user = ctx[:current_user]
+
       cond do
-        ctx[:current_user]?.admin -> :all
-        ctx[:current_user]?.id == user.id -> [:id, :name, :email]
+        current_user && current_user.admin -> :all
+        current_user && current_user.id == user.id -> [:id, :name, :email]
         true -> [:id, :name]  # Public fields only
       end
     end
@@ -203,12 +205,13 @@ For complex authorization that depends on how the object was accessed:
 type "Post", struct: MyApp.Post do
   authorize fn post, ctx, info ->
     # info contains: path, field, parent, parents
+    current_user = ctx[:current_user]
     parent_is_author = info.parent && info.parent.id == post.author_id
 
     cond do
-      ctx[:current_user]?.admin -> :all
+      current_user && current_user.admin -> :all
       parent_is_author -> :all  # Accessing through author's profile
-      ctx[:current_user]?.id == post.author_id -> [:id, :title, :content]
+      current_user && current_user.id == post.author_id -> [:id, :title, :content]
       true -> [:id, :title]
     end
   end
@@ -227,7 +230,9 @@ defmodule MyApp.GraphQL.Inputs.UpdateUserInput do
 
   input "UpdateUserInput" do
     authorize fn input, ctx ->
-      if ctx[:current_user]?.admin do
+      current_user = ctx[:current_user]
+
+      if current_user && current_user.admin do
         :all
       else
         [:name, :email]  # Regular users can only update these
@@ -286,25 +291,28 @@ type "Worker", struct: MyApp.Worker do
     arg :radius_meters, :integer, default_value: 1000
 
     # Batch loader receives all parents at once
-    loader fn workers, args, ctx ->
-      worker_ids = Enum.map(workers, & &1.id)
+    loader fn workers, args, _ctx ->
+      # Pre-build a map for O(1) lookups instead of O(n) Enum.find
+      workers_by_id = Map.new(workers, &{&1.id, &1})
+      worker_ids = Map.keys(workers_by_id)
+
       gigs = MyApp.Gigs.find_nearby(worker_ids, args.location, args.radius_meters)
 
       # Return a map of parent -> result
       Enum.group_by(gigs, & &1.worker_id)
       |> Map.new(fn {worker_id, worker_gigs} ->
-        worker = Enum.find(workers, & &1.id == worker_id)
-        {worker, worker_gigs}
+        {workers_by_id[worker_id], worker_gigs}
       end)
     end
   end
 
   field :analytics, :analytics do
     loader fn workers, _args, _ctx ->
-      MyApp.Analytics.batch_load(Enum.map(workers, & &1.id))
+      workers_by_id = Map.new(workers, &{&1.id, &1})
+
+      MyApp.Analytics.batch_load(Map.keys(workers_by_id))
       |> Map.new(fn a ->
-        worker = Enum.find(workers, & &1.id == a.worker_id)
-        {worker, a}
+        {workers_by_id[a.worker_id], a}
       end)
     end
   end
@@ -374,7 +382,8 @@ defmodule MyApp.GraphQL.Types.User do
 
     # Authorization integrates with CQL
     authorize fn user, ctx ->
-      if ctx[:current_user]?.admin, do: :all, else: [:id, :name]
+      current_user = ctx[:current_user]
+      if current_user && current_user.admin, do: :all, else: [:id, :name]
     end
 
     field :id, non_null(:id)

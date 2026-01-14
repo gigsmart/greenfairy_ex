@@ -16,6 +16,14 @@ defmodule SocialNetworkWeb.GraphQL.DataLoader do
     Dataloader.Ecto.new(Repo, query: &query/2)
   end
 
+  # Customize queries before they're executed by DataLoader.
+  # This is the place to apply common filters or authorization scoping.
+  #
+  # Examples of what you might do here in production:
+  #   - Soft delete filtering: where(queryable, [q], is_nil(q.deleted_at))
+  #   - Multi-tenancy scoping: where(queryable, [q], q.tenant_id == ^params.tenant_id)
+  #   - Authorization: filter based on current user's permissions
+  #   - Default ordering: order_by(queryable, [q], desc: q.inserted_at)
   defp query(queryable, _params) do
     queryable
   end

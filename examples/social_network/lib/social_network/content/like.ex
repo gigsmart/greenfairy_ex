@@ -15,8 +15,11 @@ defmodule SocialNetwork.Content.Like do
     |> cast(attrs, [:user_id, :post_id, :comment_id])
     |> validate_required([:user_id])
     |> validate_likeable()
+    |> unique_constraint([:user_id, :post_id], name: :unique_post_like)
+    |> unique_constraint([:user_id, :comment_id], name: :unique_comment_like)
   end
 
+  # Validates that exactly one of post_id or comment_id is set (polymorphic like)
   defp validate_likeable(changeset) do
     post_id = get_field(changeset, :post_id)
     comment_id = get_field(changeset, :comment_id)
