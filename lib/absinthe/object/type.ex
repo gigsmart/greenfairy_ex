@@ -377,7 +377,7 @@ defmodule Absinthe.Object.Type do
     module = Macro.expand(module_ast, env)
     opts = List.first(rest) || []
 
-    if is_extension_module?(module) do
+    if extension_module?(module) do
       # Get the using callback result from the extension
       using_code = module.using(opts)
 
@@ -395,12 +395,12 @@ defmodule Absinthe.Object.Type do
   defp transform_statement(other, _env), do: other
 
   # Check if a module implements the Extension behaviour
-  defp is_extension_module?(module) when is_atom(module) do
+  defp extension_module?(module) when is_atom(module) do
     Code.ensure_loaded?(module) and
       function_exported?(module, :using, 1)
   end
 
-  defp is_extension_module?(_), do: false
+  defp extension_module?(_), do: false
 
   # Generate the __authorize__/3 implementation based on authorize_fn or policy
   defp generate_authorize_impl(nil, nil) do

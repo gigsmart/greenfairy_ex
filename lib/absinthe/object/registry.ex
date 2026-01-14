@@ -123,10 +123,8 @@ defmodule Absinthe.Object.Registry do
 
   # Get the registry map, initializing if needed
   defp get_registry do
-    try do
-      :persistent_term.get(@registry_key)
-    rescue
-      ArgumentError -> %{}
-    end
+    :persistent_term.get(@registry_key)
+  rescue
+    ArgumentError -> %{}
   end
 end

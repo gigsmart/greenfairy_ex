@@ -1,9 +1,9 @@
 defmodule Absinthe.Object.Extensions.CQLTest do
   use ExUnit.Case, async: true
 
-  alias Absinthe.Object.Extensions.CQL
   alias Absinthe.Object.Adapter
   alias Absinthe.Object.Adapters.Ecto, as: EctoAdapter
+  alias Absinthe.Object.Extensions.CQL
 
   # Plain struct (not Ecto)
   defmodule PlainUser do

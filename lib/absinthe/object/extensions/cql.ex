@@ -114,41 +114,64 @@ defmodule Absinthe.Object.Extensions.CQL do
     struct_module = config.struct
     custom_filters = Module.get_attribute(env.module, :cql_custom_filters) || []
     adapter_override = Module.get_attribute(env.module, :cql_adapter_override)
-
-    # Find the right adapter using the unified adapter system
     adapter = Adapter.find_adapter(struct_module, adapter_override)
 
-    # Get fields and types from adapter
-    {adapter_fields, adapter_field_types} =
-      if adapter && struct_module do
-        fields = adapter.queryable_fields(struct_module)
-        types = Map.new(fields, fn f -> {f, adapter.field_type(struct_module, f)} end)
-        {fields, types}
-      else
-        {[], %{}}
-      end
+    {adapter_fields, adapter_field_types} = get_adapter_fields(adapter, struct_module)
+    {custom_filter_meta, custom_filter_fields} = get_custom_filter_info(custom_filters)
+    filter_function_clauses = generate_filter_clauses(custom_filters)
 
-    # Extract custom filter metadata
-    custom_filter_meta =
+    generate_cql_functions(
+      filter_function_clauses,
+      struct_module,
+      adapter,
+      adapter_fields,
+      adapter_field_types,
+      custom_filter_meta,
+      custom_filter_fields
+    )
+  end
+
+  defp get_adapter_fields(nil, _struct_module), do: {[], %{}}
+  defp get_adapter_fields(_adapter, nil), do: {[], %{}}
+
+  defp get_adapter_fields(adapter, struct_module) do
+    fields = adapter.queryable_fields(struct_module)
+    types = Map.new(fields, fn f -> {f, adapter.field_type(struct_module, f)} end)
+    {fields, types}
+  end
+
+  defp get_custom_filter_info(custom_filters) do
+    meta =
       Map.new(custom_filters, fn cf ->
         {cf.field, %{field: cf.field, operators: cf.operators}}
       end)
 
-    custom_filter_fields = Enum.map(custom_filters, & &1.field)
+    fields = Enum.map(custom_filters, & &1.field)
+    {meta, fields}
+  end
 
-    # Generate custom filter functions
-    filter_function_clauses =
-      Enum.map(custom_filters, fn cf ->
-        quote do
-          def __cql_apply_custom_filter__(unquote(cf.field), query, op, value) do
-            filter_fn = unquote(cf.filter_fn_ast)
-            filter_fn.(query, op, value)
-          end
+  defp generate_filter_clauses(custom_filters) do
+    Enum.map(custom_filters, fn cf ->
+      quote do
+        def __cql_apply_custom_filter__(unquote(cf.field), query, op, value) do
+          filter_fn = unquote(cf.filter_fn_ast)
+          filter_fn.(query, op, value)
         end
-      end)
+      end
+    end)
+  end
 
+  defp generate_cql_functions(
+         filter_clauses,
+         struct_module,
+         adapter,
+         adapter_fields,
+         adapter_field_types,
+         custom_filter_meta,
+         custom_filter_fields
+       ) do
     quote do
-      unquote_splicing(filter_function_clauses)
+      unquote_splicing(filter_clauses)
 
       def __cql_apply_custom_filter__(_field, query, _op, _value), do: query
 

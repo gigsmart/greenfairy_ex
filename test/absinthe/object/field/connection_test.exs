@@ -289,7 +289,7 @@ defmodule Absinthe.Object.Field.ConnectionTest do
       cursor = Base.encode64("cursor:999")
 
       assert {:ok, result} = Connection.from_list(items, %{after: cursor})
-      assert length(result.edges) == 0
+      assert result.edges == []
     end
 
     test "before cursor not found returns all items" do

@@ -165,8 +165,8 @@ defmodule Absinthe.Object.RootTypesTest do
 
   # Test support module coverage
   describe "Support module functions" do
-    alias Absinthe.Object.Test.RootQueryExample
     alias Absinthe.Object.Test.RootMutationExample
+    alias Absinthe.Object.Test.RootQueryExample
 
     test "RootQueryExample has correct definition" do
       assert RootQueryExample.__absinthe_object_definition__() == %{kind: :root_query}

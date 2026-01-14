@@ -83,22 +83,19 @@ defmodule Absinthe.Object.Field.Loader do
       _ ->
         # Anonymous function or function capture
         quote do
-          resolve fn parent, args, %{context: context} = resolution ->
-            loader_fn = unquote(func)
-
-            case :erlang.fun_info(loader_fn, :arity) do
-              {:arity, 2} ->
-                loader_fn.(parent, args)
-
-              {:arity, 3} ->
-                loader_fn.(parent, args, context)
-
-              _ ->
-                raise ArgumentError,
-                      "loader function must have arity 2 (parent, args) or 3 (parent, args, context)"
-            end
+          resolve fn parent, args, %{context: context} ->
+            Absinthe.Object.Field.Loader.__invoke_loader__(unquote(func), parent, args, context)
           end
         end
+    end
+  end
+
+  @doc false
+  def __invoke_loader__(loader_fn, parent, args, context) do
+    case :erlang.fun_info(loader_fn, :arity) do
+      {:arity, 2} -> loader_fn.(parent, args)
+      {:arity, 3} -> loader_fn.(parent, args, context)
+      _ -> raise ArgumentError, "loader function must have arity 2 or 3"
     end
   end
 

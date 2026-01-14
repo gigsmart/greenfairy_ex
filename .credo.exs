@@ -70,7 +70,8 @@
           #
           {Credo.Check.Refactor.Apply, []},
           {Credo.Check.Refactor.CondStatements, []},
-          {Credo.Check.Refactor.CyclomaticComplexity, []},
+          # Allow higher complexity for compile-time code generation with macros
+          {Credo.Check.Refactor.CyclomaticComplexity, [max_complexity: 20]},
           {Credo.Check.Refactor.FunctionArity, []},
           {Credo.Check.Refactor.LongQuoteBlocks, []},
           {Credo.Check.Refactor.MatchInCondition, []},

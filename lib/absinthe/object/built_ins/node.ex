@@ -42,19 +42,14 @@ defmodule Absinthe.Object.BuiltIns.Node do
   defp find_type_for_struct(struct, schema) do
     # Get all types from schema and find the one with matching struct
     schema.__absinthe_types__()
-    |> Enum.find_value(fn {identifier, _} ->
-      case Absinthe.Schema.lookup_type(schema, identifier) do
-        %{identifier: id} = _type ->
-          # Check if this type has a matching struct
-          # This would need to be enhanced with actual struct tracking
-          if has_struct_match?(schema, id, struct) do
-            id
-          end
+    |> Enum.find_value(&match_struct_type(&1, schema, struct))
+  end
 
-        _ ->
-          nil
-      end
-    end)
+  defp match_struct_type({identifier, _}, schema, struct) do
+    case Absinthe.Schema.lookup_type(schema, identifier) do
+      %{identifier: id} -> if has_struct_match?(schema, id, struct), do: id
+      _ -> nil
+    end
   end
 
   defp has_struct_match?(_schema, _identifier, _struct) do

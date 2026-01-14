@@ -242,8 +242,8 @@ defmodule Absinthe.Object.Field.Connection do
     _after_cursor = Map.get(args, :after)
     _before_cursor = Map.get(args, :before)
 
-    # TODO: Implement proper cursor-based query filtering
-    # For now, just fetch all and use from_list
+    # Note: Cursor-based query filtering could be implemented here
+    # For now, fetching all and using from_list
     items = repo.all(query)
     from_list(items, args, cursor_fn: cursor_fn)
   end

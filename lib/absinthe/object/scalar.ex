@@ -165,7 +165,7 @@ defmodule Absinthe.Object.Scalar do
   # Transform block to handle operators/filter declarations
   defp transform_scalar_block({:__block__, meta, statements}, env) do
     # Filter out our custom macros, keep only Absinthe ones
-    {custom, absinthe} = Enum.split_with(statements, &is_custom_statement?/1)
+    {custom, absinthe} = Enum.split_with(statements, &custom_statement?/1)
 
     # Process custom statements
     custom_code = Enum.map(custom, &transform_custom_statement(&1, env))
@@ -175,16 +175,16 @@ defmodule Absinthe.Object.Scalar do
   end
 
   defp transform_scalar_block(statement, env) do
-    if is_custom_statement?(statement) do
+    if custom_statement?(statement) do
       transform_custom_statement(statement, env)
     else
       statement
     end
   end
 
-  defp is_custom_statement?({:operators, _, _}), do: true
-  defp is_custom_statement?({:filter, _, _}), do: true
-  defp is_custom_statement?(_), do: false
+  defp custom_statement?({:operators, _, _}), do: true
+  defp custom_statement?({:filter, _, _}), do: true
+  defp custom_statement?(_), do: false
 
   defp transform_custom_statement({:operators, _meta, [ops]}, _env) do
     quote do
