@@ -699,12 +699,16 @@ defmodule GreenFairy.Schema do
   end
 
   # Discover types by walking the type graph from root modules
+  # Dialyzer has trouble with MapSet opaque type through recursive calls
+  @dialyzer {:nowarn_function, discover_via_graph: 1}
   defp discover_via_graph(root_modules) do
     walk_type_graph(root_modules, MapSet.new())
     |> MapSet.to_list()
   end
 
   # Walk the type graph recursively, collecting all reachable types
+  # Dialyzer has trouble tracking MapSet opaque type through recursive calls
+  @dialyzer {:nowarn_function, walk_type_graph: 2}
   defp walk_type_graph([], visited), do: visited
 
   defp walk_type_graph([module | rest], visited) when is_atom(module) do
