@@ -217,8 +217,8 @@ defmodule GreenFairy.CQLIntegrationTest do
   end
 
   describe "CQL operator types" do
-    alias GreenFairy.CQL.ScalarMapper
     alias GreenFairy.CQL.Adapters.Postgres
+    alias GreenFairy.CQL.ScalarMapper
 
     test "operator_type_identifier maps standard types to operator inputs" do
       assert ScalarMapper.operator_type_identifier(:string) == :cql_op_string_input

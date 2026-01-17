@@ -274,7 +274,7 @@ defmodule GreenFairy.Dataloader.DynamicJoinsTest do
 
       assert %{query: query} = result
       assert %Ecto.Query{wheres: wheres} = query
-      assert length(wheres) > 0
+      assert wheres != []
     end
 
     test "handles nil custom_inject" do
@@ -519,7 +519,7 @@ defmodule GreenFairy.Dataloader.DynamicJoinsTest do
       chain = DynamicJoins.build_join_chain(PostWithThrough, :categories)
 
       # has_through creates multiple join info entries
-      assert length(chain) >= 1
+      assert chain != []
       [first | _rest] = chain
 
       # First join should be from PostWithThrough to PostCategory
@@ -621,7 +621,7 @@ defmodule GreenFairy.Dataloader.DynamicJoinsTest do
       assert %{query: query} = result
       # The where clause should be added to filter by status
       assert %Ecto.Query{wheres: wheres} = query
-      assert length(wheres) > 0
+      assert wheres != []
     end
   end
 
@@ -666,7 +666,7 @@ defmodule GreenFairy.Dataloader.DynamicJoinsTest do
       assert %{query: query} = result
       assert %Ecto.Query{wheres: wheres} = query
       # Should have where clause for nil check
-      assert length(wheres) > 0
+      assert wheres != []
     end
   end
 
@@ -701,7 +701,7 @@ defmodule GreenFairy.Dataloader.DynamicJoinsTest do
       assert %{query: query} = result
       assert %Ecto.Query{wheres: wheres} = query
       # Should have where clause for != check
-      assert length(wheres) > 0
+      assert wheres != []
     end
   end
 

@@ -211,7 +211,7 @@ defmodule GreenFairy.Adapters.Ecto do
 
           if length(module_parts) >= 2 do
             [app | _] = module_parts
-            Module.concat([app, "Repo"])
+            Module.safe_concat([app, "Repo"])
           else
             nil
           end

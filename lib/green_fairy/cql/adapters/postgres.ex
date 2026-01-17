@@ -39,6 +39,7 @@ defmodule GreenFairy.CQL.Adapters.Postgres do
 
   @impl true
   def sort_direction_enum(nil), do: :cql_sort_direction
+  # credo:disable-for-next-line Credo.Check.Warning.UnsafeToAtom
   def sort_direction_enum(namespace), do: :"cql_#{namespace}_sort_direction"
 
   @impl true
@@ -54,7 +55,7 @@ defmodule GreenFairy.CQL.Adapters.Postgres do
       native_arrays: true,
       supports_json_operators: true,
       supports_full_text_search: true,
-      max_in_clause_items: 10000
+      max_in_clause_items: 10_000
     }
   end
 

@@ -22,7 +22,7 @@ defmodule GreenFairy.CQL.Adapters.PostgresTest do
       assert capabilities.array_operators_require_type_cast == true
       assert capabilities.supports_json_operators == true
       assert capabilities.supports_full_text_search == true
-      assert capabilities.max_in_clause_items == 10000
+      assert capabilities.max_in_clause_items == 10_000
       assert capabilities.native_arrays == true
     end
   end

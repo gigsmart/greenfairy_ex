@@ -200,8 +200,8 @@ defmodule GreenFairy.Middleware.QueryComplexity do
   @behaviour Absinthe.Middleware
 
   require Logger
-  alias GreenFairy.CQL.QueryComplexityAnalyzer
   alias Absinthe.Resolution
+  alias GreenFairy.CQL.QueryComplexityAnalyzer
 
   @impl true
   def call(%Resolution{state: :unresolved} = resolution, opts) do

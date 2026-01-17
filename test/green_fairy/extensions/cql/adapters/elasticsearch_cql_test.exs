@@ -20,7 +20,7 @@ defmodule GreenFairy.CQL.Adapters.ElasticsearchTest do
       assert capabilities.array_operators_require_type_cast == false
       assert capabilities.supports_json_operators == true
       assert capabilities.supports_full_text_search == true
-      assert capabilities.max_in_clause_items == 65536
+      assert capabilities.max_in_clause_items == 65_536
       assert capabilities.native_arrays == true
       assert capabilities.query_dsl_based == true
       assert capabilities.supports_fuzzy_search == true
@@ -423,7 +423,7 @@ defmodule GreenFairy.CQL.Adapters.ElasticsearchTest do
   describe "performance and scalability" do
     test "supports very large _in clauses" do
       capabilities = Elasticsearch.capabilities()
-      assert capabilities.max_in_clause_items == 65536
+      assert capabilities.max_in_clause_items == 65_536
     end
 
     test "native array support for better performance" do

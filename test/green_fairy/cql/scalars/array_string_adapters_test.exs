@@ -2,10 +2,10 @@ defmodule GreenFairy.CQL.Scalars.ArrayStringAdaptersTest do
   use ExUnit.Case, async: true
 
   alias GreenFairy.CQL.Scalars.ArrayString
-  alias GreenFairy.CQL.Scalars.ArrayString.Postgres
-  alias GreenFairy.CQL.Scalars.ArrayString.MySQL
-  alias GreenFairy.CQL.Scalars.ArrayString.SQLite
   alias GreenFairy.CQL.Scalars.ArrayString.MSSQL
+  alias GreenFairy.CQL.Scalars.ArrayString.MySQL
+  alias GreenFairy.CQL.Scalars.ArrayString.Postgres
+  alias GreenFairy.CQL.Scalars.ArrayString.SQLite
 
   defmodule TestSchema do
     use Ecto.Schema

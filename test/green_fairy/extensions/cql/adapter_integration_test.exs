@@ -2,8 +2,8 @@ defmodule GreenFairy.CQL.AdapterIntegrationTest do
   use ExUnit.Case, async: true
 
   alias GreenFairy.CQL.Adapter
-  alias GreenFairy.CQL.Adapters.{Postgres, MySQL, SQLite, MSSQL, Elasticsearch}
   alias GreenFairy.CQL.Adapters.Ecto, as: EctoAdapter
+  alias GreenFairy.CQL.Adapters.{Elasticsearch, MSSQL, MySQL, Postgres, SQLite}
   alias GreenFairy.CQL.OperatorInput
 
   # Define test repos at module level for reliable module loading
@@ -175,7 +175,7 @@ defmodule GreenFairy.CQL.AdapterIntegrationTest do
       types = OperatorInput.generate_all(adapter: SQLite)
 
       # Verify SQLite types were generated but with limited operators
-      assert length(types) > 0
+      assert types != []
 
       # Could inspect the AST to verify _includes_all is not present
       # but that would require parsing the AST deeply
@@ -186,7 +186,7 @@ defmodule GreenFairy.CQL.AdapterIntegrationTest do
       # Just verify we can generate with nil adapter (for testing)
       types = OperatorInput.generate_all(adapter: nil)
       # Without adapter, should generate default operators
-      assert length(types) > 0
+      assert types != []
     end
   end
 
@@ -220,11 +220,11 @@ defmodule GreenFairy.CQL.AdapterIntegrationTest do
     end
 
     test "max_in_clause_items varies by adapter" do
-      assert Postgres.capabilities().max_in_clause_items == 10000
+      assert Postgres.capabilities().max_in_clause_items == 10_000
       assert MySQL.capabilities().max_in_clause_items == 1000
       assert SQLite.capabilities().max_in_clause_items == 500
       assert MSSQL.capabilities().max_in_clause_items == 1000
-      assert Elasticsearch.capabilities().max_in_clause_items == 65536
+      assert Elasticsearch.capabilities().max_in_clause_items == 65_536
     end
   end
 

@@ -1,8 +1,8 @@
 defmodule GreenFairy.Middleware.QueryComplexityTest do
   use ExUnit.Case, async: true
 
-  alias GreenFairy.Middleware.QueryComplexity
   alias Absinthe.Resolution
+  alias GreenFairy.Middleware.QueryComplexity
 
   import Ecto.Query
 

@@ -8,10 +8,10 @@ defmodule GreenFairy.CQL.EnumAutoGenerationTest do
   """
   use ExUnit.Case, async: false
 
-  alias GreenFairy.TypeRegistry
+  alias GreenFairy.CQL.ScalarMapper
   alias GreenFairy.CQL.Schema.EnumOperatorInput
   alias GreenFairy.CQL.Schema.FilterInput
-  alias GreenFairy.CQL.ScalarMapper
+  alias GreenFairy.TypeRegistry
 
   # ==========================================================================
   # Test Enums

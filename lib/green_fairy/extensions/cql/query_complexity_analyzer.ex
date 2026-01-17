@@ -258,27 +258,25 @@ defmodule GreenFairy.CQL.QueryComplexityAnalyzer do
   # === PostgreSQL EXPLAIN Analysis ===
 
   defp analyze_postgres(query, repo, opts) do
-    try do
-      # Convert Ecto query to SQL
-      {sql, params} = Ecto.Adapters.SQL.to_sql(:all, repo, query)
+    # Convert Ecto query to SQL
+    {sql, params} = Ecto.Adapters.SQL.to_sql(:all, repo, query)
 
-      # Run EXPLAIN (not ANALYZE - we don't actually execute)
-      explain_sql = "EXPLAIN (FORMAT JSON, VERBOSE TRUE) #{sql}"
+    # Run EXPLAIN (not ANALYZE - we don't actually execute)
+    explain_sql = "EXPLAIN (FORMAT JSON, VERBOSE TRUE) #{sql}"
 
-      result = repo.query!(explain_sql, params)
-      plan = result.rows |> List.first() |> List.first() |> Jason.decode!()
+    result = repo.query!(explain_sql, params)
+    plan = result.rows |> List.first() |> List.first() |> Jason.decode!()
 
-      analysis = parse_postgres_plan(plan)
+    analysis = parse_postgres_plan(plan)
 
-      Logger.debug("Query complexity analysis: #{inspect(analysis)}")
+    Logger.debug("Query complexity analysis: #{inspect(analysis)}")
 
-      {:ok, analysis}
-    rescue
-      e ->
-        Logger.error("Failed to analyze query complexity: #{inspect(e)}")
-        # Fall back to heuristic analysis instead of returning 0.0
-        analyze_heuristic(query, repo, opts)
-    end
+    {:ok, analysis}
+  rescue
+    e ->
+      Logger.error("Failed to analyze query complexity: #{inspect(e)}")
+      # Fall back to heuristic analysis instead of returning 0.0
+      analyze_heuristic(query, repo, opts)
   end
 
   defp parse_postgres_plan([%{"Plan" => plan}]) do
@@ -350,7 +348,7 @@ defmodule GreenFairy.CQL.QueryComplexityAnalyzer do
       end)
 
     suggestions =
-      if length(seq_scan_nodes) > 0 do
+      if seq_scan_nodes != [] do
         table_names =
           seq_scan_nodes
           |> Enum.map(fn node -> node["Relation Name"] end)
@@ -498,62 +496,60 @@ defmodule GreenFairy.CQL.QueryComplexityAnalyzer do
   # This is less accurate than EXPLAIN but provides reasonable estimates
   # for SQLite, MSSQL, and other adapters.
   defp analyze_heuristic(query, _repo, _opts) do
-    try do
-      # Extract query components
-      wheres = extract_wheres(query)
-      joins = extract_joins(query)
-      order_bys = extract_order_bys(query)
-      limit = extract_limit(query)
-      offset = extract_offset(query)
-      select = extract_select(query)
+    # Extract query components
+    wheres = extract_wheres(query)
+    joins = extract_joins(query)
+    order_bys = extract_order_bys(query)
+    limit = extract_limit(query)
+    offset = extract_offset(query)
+    select = extract_select(query)
 
-      # Calculate component scores
-      where_score = calculate_where_score(wheres)
-      join_score = calculate_join_score(joins)
-      order_score = calculate_order_score(order_bys, limit)
-      pagination_score = calculate_pagination_score(limit, offset)
-      select_score = calculate_select_score(select)
+    # Calculate component scores
+    where_score = calculate_where_score(wheres)
+    join_score = calculate_join_score(joins)
+    order_score = calculate_order_score(order_bys, limit)
+    pagination_score = calculate_pagination_score(limit, offset)
+    select_score = calculate_select_score(select)
 
-      # Total complexity score
-      complexity_score =
-        where_score + join_score + order_score + pagination_score + select_score
+    # Total complexity score
+    complexity_score =
+      where_score + join_score + order_score + pagination_score + select_score
 
-      # Estimate cost (heuristic) - ensure float
-      estimated_cost = complexity_score * 100.0
+    # Estimate cost (heuristic) - ensure float
+    estimated_cost = complexity_score * 100.0
 
-      # Estimate rows
-      estimated_rows =
-        if limit do
-          min(limit, 1000)
-        else
-          1000
-        end
+    # Estimate rows
+    estimated_rows =
+      if limit do
+        min(limit, 1000)
+      else
+        1000
+      end
 
-      # Generate suggestions
-      suggestions = generate_heuristic_suggestions(query, limit, joins, order_bys)
+    # Generate suggestions
+    suggestions = generate_heuristic_suggestions(query, limit, joins, order_bys)
 
-      analysis = %{
-        cost: estimated_cost * 1.0,
-        rows: estimated_rows,
-        complexity_score: min(complexity_score, 100) * 1.0,
-        where_conditions: length(wheres),
-        joins: length(joins),
-        order_by_fields: length(order_bys),
-        has_limit: limit != nil,
-        has_offset: offset != nil,
-        suggestions: suggestions,
-        analysis_method: :heuristic
-      }
+    analysis = %{
+      cost: estimated_cost * 1.0,
+      rows: estimated_rows,
+      complexity_score: min(complexity_score, 100) * 1.0,
+      where_conditions: length(wheres),
+      joins: length(joins),
+      order_by_fields: length(order_bys),
+      has_limit: limit != nil,
+      has_offset: offset != nil,
+      suggestions: suggestions,
+      analysis_method: :heuristic
+    }
 
-      Logger.debug("Heuristic complexity analysis: #{inspect(analysis)}")
+    Logger.debug("Heuristic complexity analysis: #{inspect(analysis)}")
 
-      {:ok, analysis}
-    rescue
-      e ->
-        Logger.error("Failed heuristic analysis: #{inspect(e)}")
-        # Fail open
-        {:ok, %{cost: 0.0, complexity_score: 0.0, analysis_method: :heuristic_failed}}
-    end
+    {:ok, analysis}
+  rescue
+    e ->
+      Logger.error("Failed heuristic analysis: #{inspect(e)}")
+      # Fail open
+      {:ok, %{cost: 0.0, complexity_score: 0.0, analysis_method: :heuristic_failed}}
   end
 
   defp extract_wheres(query) do
@@ -697,7 +693,7 @@ defmodule GreenFairy.CQL.QueryComplexityAnalyzer do
 
     # Suggest indexes for ORDER BY
     suggestions =
-      if length(order_bys) > 0 and limit == nil do
+      if order_bys != [] and limit == nil do
         ["Add a LIMIT clause when using ORDER BY, or add indexes on sort columns" | suggestions]
       else
         suggestions
@@ -738,92 +734,88 @@ defmodule GreenFairy.CQL.QueryComplexityAnalyzer do
   end
 
   defp get_postgres_load_metrics(repo) do
-    try do
-      # Get connection count
-      conn_result =
-        repo.query!("""
-          SELECT count(*) as active_connections
-          FROM pg_stat_activity
-          WHERE state = 'active'
-        """)
+    # Get connection count
+    conn_result =
+      repo.query!("""
+        SELECT count(*) as active_connections
+        FROM pg_stat_activity
+        WHERE state = 'active'
+      """)
 
-      active_connections = conn_result.rows |> List.first() |> List.first()
+    active_connections = conn_result.rows |> List.first() |> List.first()
 
-      # Get cache hit ratio
-      cache_result =
-        repo.query!("""
-          SELECT
-            sum(blks_hit) / NULLIF(sum(blks_hit + blks_read), 0) as cache_hit_ratio
-          FROM pg_stat_database
-        """)
+    # Get cache hit ratio
+    cache_result =
+      repo.query!("""
+        SELECT
+          sum(blks_hit) / NULLIF(sum(blks_hit + blks_read), 0) as cache_hit_ratio
+        FROM pg_stat_database
+      """)
 
-      cache_hit_ratio = cache_result.rows |> List.first() |> List.first() || 1.0
+    cache_hit_ratio = cache_result.rows |> List.first() |> List.first() || 1.0
 
-      # Get transaction rate
-      tx_result =
-        repo.query!("""
-          SELECT
-            xact_commit + xact_rollback as total_transactions
-          FROM pg_stat_database
-          WHERE datname = current_database()
-        """)
+    # Get transaction rate
+    tx_result =
+      repo.query!("""
+        SELECT
+          xact_commit + xact_rollback as total_transactions
+        FROM pg_stat_database
+        WHERE datname = current_database()
+      """)
 
-      total_transactions = tx_result.rows |> List.first() |> List.first()
+    total_transactions = tx_result.rows |> List.first() |> List.first()
 
-      # Calculate load factor (0.0 - 1.0)
-      # Higher values = higher load
-      # 100 connections = max
-      connection_load = min(active_connections / 100, 1.0)
-      # Lower cache hit = higher load
-      cache_load = 1.0 - (cache_hit_ratio || 0.95)
+    # Calculate load factor (0.0 - 1.0)
+    # Higher values = higher load
+    # 100 connections = max
+    connection_load = min(active_connections / 100, 1.0)
+    # Lower cache hit = higher load
+    cache_load = 1.0 - (cache_hit_ratio || 0.95)
 
-      load_factor = (connection_load + cache_load) / 2
+    load_factor = (connection_load + cache_load) / 2
 
+    {:ok,
+     %{
+       active_connections: active_connections,
+       cache_hit_ratio: cache_hit_ratio,
+       transaction_rate: total_transactions,
+       load_factor: load_factor
+     }}
+  rescue
+    e ->
+      Logger.error("Failed to get load metrics: #{inspect(e)}")
+      # Return default metrics with all expected fields
       {:ok,
        %{
-         active_connections: active_connections,
-         cache_hit_ratio: cache_hit_ratio,
-         transaction_rate: total_transactions,
-         load_factor: load_factor
+         active_connections: 10,
+         cache_hit_ratio: 0.95,
+         transaction_rate: 100,
+         load_factor: 0.5
        }}
-    rescue
-      e ->
-        Logger.error("Failed to get load metrics: #{inspect(e)}")
-        # Return default metrics with all expected fields
-        {:ok,
-         %{
-           active_connections: 10,
-           cache_hit_ratio: 0.95,
-           transaction_rate: 100,
-           load_factor: 0.5
-         }}
-    end
   end
 
   defp get_mysql_load_metrics(repo) do
-    try do
-      # Get connection count
-      conn_result = repo.query!("SHOW STATUS LIKE 'Threads_connected'")
-      active_connections = conn_result.rows |> List.first() |> List.last() |> String.to_integer()
+    # Get connection count
+    conn_result = repo.query!("SHOW STATUS LIKE 'Threads_connected'")
+    active_connections = conn_result.rows |> List.first() |> List.last() |> String.to_integer()
 
-      # Calculate load factor
-      connection_load = min(active_connections / 100, 1.0)
+    # Calculate load factor
+    connection_load = min(active_connections / 100, 1.0)
 
+    {:ok,
+     %{
+       active_connections: active_connections,
+       load_factor: connection_load
+     }}
+  rescue
+    e ->
+      Logger.error("Failed to get MySQL load metrics: #{inspect(e)}")
+      # Return default metrics with all expected fields
       {:ok,
        %{
-         active_connections: active_connections,
-         load_factor: connection_load
+         active_connections: 10,
+         load_factor: 0.5
        }}
-    rescue
-      e ->
-        Logger.error("Failed to get MySQL load metrics: #{inspect(e)}")
-        # Return default metrics with all expected fields
-        {:ok,
-         %{
-           active_connections: 10,
-           load_factor: 0.5
-         }}
-    end
   end
 
   # === Adaptive Limits ===

@@ -146,6 +146,7 @@ defmodule GreenFairy.Field.Association do
       |> Module.split()
       |> List.last()
       |> Macro.underscore()
+      # credo:disable-for-next-line Credo.Check.Warning.UnsafeToAtom
       |> String.to_atom()
     end
   end

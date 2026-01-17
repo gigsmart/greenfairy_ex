@@ -41,11 +41,13 @@ defmodule GreenFairy.CQL.Schema.EnumOperatorInput do
 
   """
   def operator_type_identifier(enum_identifier) when is_atom(enum_identifier) do
+    # credo:disable-for-next-line Credo.Check.Warning.UnsafeToAtom
     String.to_atom("cql_enum_#{enum_identifier}_input")
   end
 
   def operator_type_identifier(enum_name) when is_binary(enum_name) do
     underscored = Macro.underscore(enum_name)
+    # credo:disable-for-next-line Credo.Check.Warning.UnsafeToAtom
     String.to_atom("cql_enum_#{underscored}_input")
   end
 
@@ -59,11 +61,13 @@ defmodule GreenFairy.CQL.Schema.EnumOperatorInput do
 
   """
   def array_operator_type_identifier(enum_identifier) when is_atom(enum_identifier) do
+    # credo:disable-for-next-line Credo.Check.Warning.UnsafeToAtom
     String.to_atom("cql_enum_#{enum_identifier}_array_input")
   end
 
   def array_operator_type_identifier(enum_name) when is_binary(enum_name) do
     underscored = Macro.underscore(enum_name)
+    # credo:disable-for-next-line Credo.Check.Warning.UnsafeToAtom
     String.to_atom("cql_enum_#{underscored}_array_input")
   end
 

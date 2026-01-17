@@ -131,6 +131,7 @@ defmodule GreenFairy.Field.ConnectionAggregate do
 
   Called from __before_compile__ to generate aggregate types.
   """
+  # credo:disable-for-lines:6 Credo.Check.Warning.UnsafeToAtom
   def generate_aggregate_types(_connection_name, type_name, aggregates) do
     return_type = :"#{type_name}_aggregate"
     sum_type = :"#{type_name}_sum_aggregates"
@@ -225,6 +226,7 @@ defmodule GreenFairy.Field.ConnectionAggregate do
   defp generate_aggregate_fields(fields, default_type) do
     Enum.map(fields, fn field ->
       # Convert snake_case to camelCase for GraphQL
+      # credo:disable-for-next-line Credo.Check.Warning.UnsafeToAtom
       graphql_name = field |> Atom.to_string() |> Absinthe.Utils.camelize(lower: true) |> String.to_atom()
 
       quote do

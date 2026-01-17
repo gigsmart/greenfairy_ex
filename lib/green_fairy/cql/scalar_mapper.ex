@@ -219,7 +219,7 @@ defmodule GreenFairy.CQL.ScalarMapper do
       is_atom(ecto_type) and GreenFairy.TypeRegistry.is_enum?(ecto_type) ->
         GreenFairy.CQL.Schema.EnumOperatorInput.operator_type_identifier(ecto_type)
 
-      is_gf_enum_array?(ecto_type) ->
+      gf_enum_array?(ecto_type) ->
         {:array, inner} = ecto_type
         GreenFairy.CQL.Schema.EnumOperatorInput.array_operator_type_identifier(inner)
 
@@ -240,11 +240,11 @@ defmodule GreenFairy.CQL.ScalarMapper do
   end
 
   # Check if type is an array of a GreenFairy enum
-  defp is_gf_enum_array?({:array, inner}) when is_atom(inner) do
+  defp gf_enum_array?({:array, inner}) when is_atom(inner) do
     GreenFairy.TypeRegistry.is_enum?(inner)
   end
 
-  defp is_gf_enum_array?(_), do: false
+  defp gf_enum_array?(_), do: false
 
   @doc """
   Returns the operator input definition for an Ecto field type and adapter.

@@ -1,8 +1,8 @@
 defmodule GreenFairy.CQL.OperatorInputTest do
   use ExUnit.Case, async: true
 
-  alias GreenFairy.CQL.Schema.OperatorInput
   alias GreenFairy.CQL.Adapters.Postgres
+  alias GreenFairy.CQL.Schema.OperatorInput
 
   describe "type_for/1" do
     test "returns operator type for id" do

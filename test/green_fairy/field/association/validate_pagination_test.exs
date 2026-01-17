@@ -114,7 +114,7 @@ defmodule GreenFairy.Field.Association.ValidatePaginationTest do
       assert result.state == :unresolved
     end
 
-    test "passes when offset is within default max (10000)" do
+    test "passes when offset is within default max (10_000)" do
       res = resolution(%{offset: 5000})
 
       result = ValidatePagination.call(res, [])
@@ -123,7 +123,7 @@ defmodule GreenFairy.Field.Association.ValidatePaginationTest do
     end
 
     test "passes when offset equals max offset" do
-      res = resolution(%{offset: 10000})
+      res = resolution(%{offset: 10_000})
 
       result = ValidatePagination.call(res, [])
 
@@ -131,15 +131,15 @@ defmodule GreenFairy.Field.Association.ValidatePaginationTest do
     end
 
     test "passes when offset is within custom max offset" do
-      res = resolution(%{offset: 50000})
+      res = resolution(%{offset: 50_000})
 
       result = ValidatePagination.call(res, max_offset: 100_000)
 
       assert result.state == :unresolved
     end
 
-    test "fails when offset exceeds default max (10000)" do
-      res = resolution(%{offset: 15000})
+    test "fails when offset exceeds default max (10_000)" do
+      res = resolution(%{offset: 15_000})
 
       result = ValidatePagination.call(res, [])
 
@@ -194,7 +194,7 @@ defmodule GreenFairy.Field.Association.ValidatePaginationTest do
     end
 
     test "fails on limit before checking offset" do
-      res = resolution(%{limit: 500, offset: 50000})
+      res = resolution(%{limit: 500, offset: 50_000})
 
       result = ValidatePagination.call(res, [])
 
@@ -204,7 +204,7 @@ defmodule GreenFairy.Field.Association.ValidatePaginationTest do
     end
 
     test "fails on offset when limit is valid" do
-      res = resolution(%{limit: 50, offset: 50000})
+      res = resolution(%{limit: 50, offset: 50_000})
 
       result = ValidatePagination.call(res, [])
 
@@ -213,7 +213,7 @@ defmodule GreenFairy.Field.Association.ValidatePaginationTest do
     end
 
     test "passes with custom max_limit and max_offset" do
-      res = resolution(%{limit: 500, offset: 50000})
+      res = resolution(%{limit: 500, offset: 50_000})
 
       result = ValidatePagination.call(res, max_limit: 1000, max_offset: 100_000)
 

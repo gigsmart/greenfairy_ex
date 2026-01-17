@@ -55,8 +55,8 @@ defmodule GreenFairy.CQLArrayOperatorsTest do
   end
 
   describe "ScalarMapper.operator_type_identifier/1" do
-    alias GreenFairy.CQL.ScalarMapper
     alias GreenFairy.CQL.Adapters.Postgres
+    alias GreenFairy.CQL.ScalarMapper
 
     test "returns enum array input for enum arrays" do
       assert ScalarMapper.operator_type_identifier({:array, {:parameterized, Ecto.Enum, %{}}}) ==
@@ -87,8 +87,8 @@ defmodule GreenFairy.CQLArrayOperatorsTest do
   end
 
   describe "Array operator input type generation" do
-    alias GreenFairy.CQL.ScalarMapper
     alias GreenFairy.CQL.Adapters.Postgres
+    alias GreenFairy.CQL.ScalarMapper
 
     test "operator_types includes enum array input" do
       operator_types = Postgres.operator_inputs()
@@ -268,7 +268,7 @@ defmodule GreenFairy.CQLArrayOperatorsTest do
 
       assert %Ecto.Query{} = result
       # Should have two where clauses
-      assert length(result.wheres) >= 1
+      assert result.wheres != []
     end
 
     test "combines array operators with logical operators", %{query: query} do
@@ -318,8 +318,8 @@ defmodule GreenFairy.CQLArrayOperatorsTest do
 
       # This would be tested through actual schema compilation
       # For now, we verify the mapping logic
-      alias GreenFairy.CQL.ScalarMapper
       alias GreenFairy.CQL.Adapters.Postgres
+      alias GreenFairy.CQL.ScalarMapper
 
       enum_type = {:array, {:parameterized, Ecto.Enum, %{}}}
       assert ScalarMapper.operator_type_identifier(enum_type) == :cql_op_enum_array_input

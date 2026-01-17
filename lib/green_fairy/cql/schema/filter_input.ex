@@ -38,6 +38,7 @@ defmodule GreenFairy.CQL.Schema.FilterInput do
   Generates the filter input type identifier for a type name.
   """
   def filter_type_identifier(type_name) when is_binary(type_name) do
+    # credo:disable-for-next-line Credo.Check.Warning.UnsafeToAtom
     String.to_atom("cql_filter_#{Macro.underscore(type_name)}_input")
   end
 
@@ -53,6 +54,7 @@ defmodule GreenFairy.CQL.Schema.FilterInput do
   - `type_name` - The GraphQL type name (e.g., "User")
   - `fields` - List of `{field_name, field_type}` tuples
   - `custom_filters` - Map of custom filter definitions
+  - `associations` - List of `{assoc_name, related_type_name}` tuples for nested filters
 
   ## Example
 
@@ -62,19 +64,27 @@ defmodule GreenFairy.CQL.Schema.FilterInput do
         {:age, :integer}
       ]
 
-      FilterInput.generate("User", fields)
+      associations = [
+        {:posts, "Post"},
+        {:comments, "Comment"}
+      ]
+
+      FilterInput.generate("User", fields, %{}, associations)
   """
-  def generate(type_name, fields, custom_filters \\ %{}) do
+  def generate(type_name, fields, custom_filters \\ %{}, associations \\ []) do
     identifier = filter_type_identifier(type_name)
     description = "Filter input for #{type_name} type"
 
     # Build field definitions
     field_defs = build_field_definitions(fields, custom_filters)
 
+    # Build association field definitions for nested filtering
+    assoc_defs = build_association_definitions(associations)
+
     # Build combinator fields (_and, _or, _not)
     combinator_fields = build_combinator_fields(identifier)
 
-    all_fields = combinator_fields ++ field_defs
+    all_fields = combinator_fields ++ field_defs ++ assoc_defs
 
     # Use fully qualified macro call to ensure proper expansion
     quote do
@@ -102,6 +112,20 @@ defmodule GreenFairy.CQL.Schema.FilterInput do
       end
 
     [and_field, or_field, not_field]
+  end
+
+  # Build field definitions for associations (nested filters)
+  # Each association gets a field that references its related type's filter input
+  defp build_association_definitions(associations) do
+    associations
+    |> Enum.map(fn {assoc_name, related_type_name} ->
+      # Generate the filter type identifier for the related type
+      related_filter_id = filter_type_identifier(related_type_name)
+
+      quote do
+        Absinthe.Schema.Notation.field(unquote(assoc_name), unquote(related_filter_id))
+      end
+    end)
   end
 
   defp build_field_definitions(fields, custom_filters) do
@@ -133,7 +157,7 @@ defmodule GreenFairy.CQL.Schema.FilterInput do
         EnumOperatorInput.operator_type_identifier(field_type)
 
       # Check if it's an array of enums
-      is_enum_array?(field_type) ->
+      enum_array?(field_type) ->
         enum_id = get_enum_from_array(field_type)
         EnumOperatorInput.array_operator_type_identifier(enum_id)
 
@@ -144,11 +168,11 @@ defmodule GreenFairy.CQL.Schema.FilterInput do
   end
 
   # Check if the type is an array of enums
-  defp is_enum_array?({:array, inner_type}) when is_atom(inner_type) do
+  defp enum_array?({:array, inner_type}) when is_atom(inner_type) do
     TypeRegistry.is_enum?(inner_type)
   end
 
-  defp is_enum_array?(_), do: false
+  defp enum_array?(_), do: false
 
   # Extract enum identifier from array type
   defp get_enum_from_array({:array, inner_type}), do: inner_type
@@ -226,10 +250,12 @@ defmodule GreenFairy.CQL.Schema.FilterInput do
 
   This function is kept for backwards compatibility with the old API.
   """
+  # credo:disable-for-lines:2 Credo.Check.Warning.UnsafeToAtom
   def input_name(type_name) when is_binary(type_name), do: :"#{type_name}Filter"
 
   def input_name(type_identifier) when is_atom(type_identifier) do
     name = type_identifier |> to_string() |> Macro.camelize()
+    # credo:disable-for-next-line Credo.Check.Warning.UnsafeToAtom
     :"#{name}Filter"
   end
 end

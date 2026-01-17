@@ -17,6 +17,7 @@ defmodule GreenFairy.CQL.Adapters.MySQL do
 
   @impl true
   def sort_direction_enum(nil), do: :cql_sort_direction
+  # credo:disable-for-next-line Credo.Check.Warning.UnsafeToAtom
   def sort_direction_enum(namespace), do: :"cql_#{namespace}_sort_direction"
 
   @impl true

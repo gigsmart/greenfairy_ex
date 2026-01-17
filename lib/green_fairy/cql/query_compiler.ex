@@ -133,8 +133,42 @@ defmodule GreenFairy.CQL.QueryCompiler do
   end
 
   defp compile_condition(query, :_not, filter, schema, adapter, opts) when is_map(filter) do
-    subquery_dynamic = build_dynamic_for_filter(filter, schema, adapter, opts)
-    where(query, ^dynamic([q], not (^subquery_dynamic)))
+    # Check if the filter contains association fields that need special handling
+    assoc_fields = filter |> Map.keys() |> Enum.filter(&association?(schema, &1))
+    regular_fields = Map.keys(filter) -- assoc_fields -- [:_and, :_or, :_not]
+
+    cond do
+      # If only association filters, use NOT EXISTS for each
+      regular_fields == [] and assoc_fields != [] ->
+        Enum.reduce(assoc_fields, query, fn field, acc ->
+          assoc_filter = Map.get(filter, field)
+          compile_not_association_filter(acc, field, assoc_filter, schema, adapter, opts)
+        end)
+
+      # If only regular fields, use dynamic NOT
+      assoc_fields == [] ->
+        subquery_dynamic = build_dynamic_for_filter(filter, schema, adapter, opts)
+        where(query, ^dynamic([q], not (^subquery_dynamic)))
+
+      # Mixed case: handle associations with NOT EXISTS, regular with dynamic
+      true ->
+        # First apply NOT EXISTS for associations
+        query =
+          Enum.reduce(assoc_fields, query, fn field, acc ->
+            assoc_filter = Map.get(filter, field)
+            compile_not_association_filter(acc, field, assoc_filter, schema, adapter, opts)
+          end)
+
+        # Then apply dynamic NOT for regular fields
+        regular_filter = Map.take(filter, regular_fields)
+
+        if map_size(regular_filter) > 0 do
+          subquery_dynamic = build_dynamic_for_filter(regular_filter, schema, adapter, opts)
+          where(query, ^dynamic([q], not (^subquery_dynamic)))
+        else
+          query
+        end
+    end
   end
 
   # Exists operator (only valid in nested context)
@@ -206,6 +240,28 @@ defmodule GreenFairy.CQL.QueryCompiler do
     from(q in query, as: ^parent_alias, where: exists(subquery(subquery)))
   end
 
+  # Compile NOT association filter - uses NOT EXISTS subquery
+  defp compile_not_association_filter(query, field, filter, schema, adapter, opts) do
+    assoc = schema.__schema__(:association, field)
+    related = assoc.related
+    nested_opts = Keyword.put(opts, :is_nested, true)
+
+    base_query = from(r in related)
+    filtered_query = compile_filter(base_query, filter, related, adapter, nested_opts)
+
+    partition = %Partition{
+      query: filtered_query,
+      owner: schema,
+      queryable: related,
+      field: field
+    }
+
+    parent_alias = Keyword.get(opts, :parent_alias, :parent)
+    subquery = DynamicJoins.existence_subquery(partition, parent_alias)
+
+    from(q in query, as: ^parent_alias, where: not exists(subquery(subquery)))
+  end
+
   defp build_partition_for_exists(field, schema, assoc) do
     related = assoc.related
     base_query = from(r in related)
@@ -254,6 +310,32 @@ defmodule GreenFairy.CQL.QueryCompiler do
     end)
   end
 
+  # Handle nested _and within _or
+  defp build_dynamic_condition(:_and, filters, schema, adapter, opts) when is_list(filters) do
+    dynamics =
+      Enum.map(filters, fn filter ->
+        build_dynamic_for_filter(filter, schema, adapter, opts)
+      end)
+
+    Enum.reduce(dynamics, dynamic(true), fn d, acc -> dynamic([q], ^acc and ^d) end)
+  end
+
+  # Handle nested _or within _or (though rare)
+  defp build_dynamic_condition(:_or, filters, schema, adapter, opts) when is_list(filters) do
+    dynamics =
+      Enum.map(filters, fn filter ->
+        build_dynamic_for_filter(filter, schema, adapter, opts)
+      end)
+
+    Enum.reduce(dynamics, dynamic(false), fn d, acc -> dynamic([q], ^acc or ^d) end)
+  end
+
+  # Handle nested _not within _or
+  defp build_dynamic_condition(:_not, filter, schema, adapter, opts) when is_map(filter) do
+    inner = build_dynamic_for_filter(filter, schema, adapter, opts)
+    dynamic([q], not (^inner))
+  end
+
   defp build_dynamic_condition(field, operators, schema, _adapter, _opts) when is_map(operators) do
     if association?(schema, field) do
       # For associations in _or, we need to handle specially
@@ -298,6 +380,39 @@ defmodule GreenFairy.CQL.QueryCompiler do
   defp build_basic_operator_dynamic(field, :_ilike, value), do: dynamic([q], ilike(field(q, ^field), ^value))
   defp build_basic_operator_dynamic(field, :_is_null, true), do: dynamic([q], is_nil(field(q, ^field)))
   defp build_basic_operator_dynamic(field, :_is_null, false), do: dynamic([q], not is_nil(field(q, ^field)))
+
+  # String operators
+  defp build_basic_operator_dynamic(field, :_contains, value) do
+    pattern = "%#{value}%"
+    dynamic([q], like(field(q, ^field), ^pattern))
+  end
+
+  defp build_basic_operator_dynamic(field, :_icontains, value) do
+    pattern = "%#{value}%"
+    dynamic([q], ilike(field(q, ^field), ^pattern))
+  end
+
+  defp build_basic_operator_dynamic(field, :_starts_with, value) do
+    pattern = "#{value}%"
+    dynamic([q], like(field(q, ^field), ^pattern))
+  end
+
+  defp build_basic_operator_dynamic(field, :_istarts_with, value) do
+    pattern = "#{value}%"
+    dynamic([q], ilike(field(q, ^field), ^pattern))
+  end
+
+  defp build_basic_operator_dynamic(field, :_ends_with, value) do
+    pattern = "%#{value}"
+    dynamic([q], like(field(q, ^field), ^pattern))
+  end
+
+  defp build_basic_operator_dynamic(field, :_iends_with, value) do
+    pattern = "%#{value}"
+    dynamic([q], ilike(field(q, ^field), ^pattern))
+  end
+
+  # Fallback for unknown operators
   defp build_basic_operator_dynamic(_field, _op, _value), do: dynamic(true)
 
   # ============================================================================

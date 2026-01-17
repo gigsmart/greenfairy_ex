@@ -172,7 +172,8 @@ defmodule GreenFairy.CQL.Schema do
     # Detect adapter from the schema's configuration
     adapter = detect_cql_adapter_from_env(env)
 
-    # Generate the CQL types module name
+    # Generate the CQL types module name (safe - schema_module is known at compile time)
+    # credo:disable-for-next-line Credo.Check.Warning.UnsafeToAtom
     cql_types_module = Module.concat(schema_module, CqlTypes)
 
     # Generate all the type definition AST
@@ -270,19 +271,9 @@ defmodule GreenFairy.CQL.Schema do
     # Combine all type definitions into a single block
     all_types = operator_types_ast ++ order_base_types_ast
 
-    # Use Code.eval_quoted to evaluate each type definition in the caller's context
-    # This ensures Absinthe's notation macros (input_object, field, enum) expand properly
-    # with correct scope tracking for nested definitions
-    eval_statements =
-      Enum.map(all_types, fn type_ast ->
-        escaped_ast = Macro.escape(type_ast)
-
-        quote do
-          Code.eval_quoted(unquote(escaped_ast), [], __ENV__)
-        end
-      end)
-
-    {:__block__, [], eval_statements}
+    # Return the AST directly as a block
+    # The Absinthe notation macros will expand properly in the caller's context
+    {:__block__, [], all_types}
   end
 
   @doc """
@@ -367,17 +358,8 @@ defmodule GreenFairy.CQL.Schema do
     adapter = detect_cql_adapter_at_compile(__CALLER__)
     operator_types_ast = GreenFairy.CQL.Schema.OperatorInput.generate_all(adapter: adapter)
 
-    # Use Code.eval_quoted to evaluate each type definition in the caller's context
-    eval_statements =
-      Enum.map(operator_types_ast, fn type_ast ->
-        escaped_ast = Macro.escape(type_ast)
-
-        quote do
-          Code.eval_quoted(unquote(escaped_ast), [], __ENV__)
-        end
-      end)
-
-    {:__block__, [], eval_statements}
+    # Return the AST directly as a block
+    {:__block__, [], operator_types_ast}
   end
 
   @doc """

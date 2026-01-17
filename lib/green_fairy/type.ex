@@ -263,14 +263,14 @@ defmodule GreenFairy.Type do
 
   # Check if the block already has `use GreenFairy.CQL`
   defp has_cql_use?({:__block__, _, statements}) do
-    Enum.any?(statements, &is_cql_use?/1)
+    Enum.any?(statements, &cql_use?/1)
   end
 
-  defp has_cql_use?(statement), do: is_cql_use?(statement)
+  defp has_cql_use?(statement), do: cql_use?(statement)
 
-  defp is_cql_use?({:use, _, [{:__aliases__, _, [:GreenFairy, :CQL]} | _]}), do: true
-  defp is_cql_use?({:use, _, [GreenFairy.CQL | _]}), do: true
-  defp is_cql_use?(_), do: false
+  defp cql_use?({:use, _, [{:__aliases__, _, [:GreenFairy, :CQL]} | _]}), do: true
+  defp cql_use?({:use, _, [GreenFairy.CQL | _]}), do: true
+  defp cql_use?(_), do: false
 
   # Prepend `use GreenFairy.CQL` to the block
   defp prepend_cql_use({:__block__, meta, statements}) do

@@ -103,7 +103,7 @@ defmodule GreenFairy.MutationTest do
       # Should have extracted the FakeUserType module references
       assert is_list(refs)
       # Module aliases are stored as AST tuples, so we check for non-empty list
-      assert length(refs) > 0
+      assert refs != []
     end
 
     test "extracts custom atom types (non-builtins)" do

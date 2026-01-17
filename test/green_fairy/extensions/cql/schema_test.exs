@@ -77,7 +77,7 @@ defmodule GreenFairy.CQL.SchemaTest do
       ast = GreenFairy.CQL.Schema.OrderInput.generate_base_types()
       assert is_list(ast)
       # Should have sort direction enum and order input types
-      assert length(ast) > 0
+      assert ast != []
     end
   end
 end

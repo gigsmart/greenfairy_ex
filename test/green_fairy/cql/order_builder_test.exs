@@ -36,7 +36,7 @@ defmodule GreenFairy.CQL.OrderBuilderTest do
       result = OrderBuilder.apply_order(query, order, TestUser)
 
       assert %Ecto.Query{order_bys: order_bys} = result
-      assert length(order_bys) > 0
+      assert order_bys != []
     end
 
     test "applies single field desc ordering" do
@@ -46,7 +46,7 @@ defmodule GreenFairy.CQL.OrderBuilderTest do
       result = OrderBuilder.apply_order(query, order, TestUser)
 
       assert %Ecto.Query{order_bys: order_bys} = result
-      assert length(order_bys) > 0
+      assert order_bys != []
     end
 
     test "applies multiple field ordering" do
@@ -60,7 +60,7 @@ defmodule GreenFairy.CQL.OrderBuilderTest do
       result = OrderBuilder.apply_order(query, order, TestUser)
 
       assert %Ecto.Query{order_bys: order_bys} = result
-      assert length(order_bys) > 0
+      assert order_bys != []
     end
 
     test "handles direction atom shorthand" do
@@ -70,7 +70,7 @@ defmodule GreenFairy.CQL.OrderBuilderTest do
       result = OrderBuilder.apply_order(query, order, TestUser)
 
       assert %Ecto.Query{order_bys: order_bys} = result
-      assert length(order_bys) > 0
+      assert order_bys != []
     end
 
     test "skips logical operators like _and, _or, _not" do
@@ -84,7 +84,7 @@ defmodule GreenFairy.CQL.OrderBuilderTest do
       result = OrderBuilder.apply_order(query, order, TestUser)
 
       assert %Ecto.Query{order_bys: order_bys} = result
-      assert length(order_bys) > 0
+      assert order_bys != []
     end
 
     test "skips non-atom keys" do
@@ -94,7 +94,7 @@ defmodule GreenFairy.CQL.OrderBuilderTest do
       result = OrderBuilder.apply_order(query, order, TestUser)
 
       assert %Ecto.Query{order_bys: order_bys} = result
-      assert length(order_bys) > 0
+      assert order_bys != []
     end
 
     test "returns query unchanged when all order specs are invalid" do

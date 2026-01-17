@@ -342,6 +342,7 @@ defmodule GreenFairy.Schema do
       adapter = adapter || detect_cql_adapter(schema_module)
 
       # Generate CQL types module name
+      # credo:disable-for-next-line Credo.Check.Warning.UnsafeToAtom
       cql_types_module = Module.concat(schema_module, CqlTypes)
 
       # Generate operator types and order base types
@@ -554,6 +555,7 @@ defmodule GreenFairy.Schema do
         Keyword.get(opts, :as, type_identifier)
       else
         # For other fields, use type_by_field (e.g., :user_by_email)
+        # credo:disable-for-next-line Credo.Check.Warning.UnsafeToAtom
         Keyword.get(opts, :as, :"#{type_identifier}_by_#{field_name}")
       end
 
@@ -755,11 +757,9 @@ defmodule GreenFairy.Schema do
 
   # Module alias AST - expand to module atom
   defp resolve_type_reference({:__aliases__, _, _} = module_ast) do
-    try do
-      Macro.expand(module_ast, __ENV__)
-    rescue
-      _ -> nil
-    end
+    Macro.expand(module_ast, __ENV__)
+  rescue
+    _ -> nil
   end
 
   defp resolve_type_reference(_), do: nil

@@ -1,9 +1,9 @@
 defmodule GreenFairy.CQL.Scalars.StringAdaptersTest do
   use ExUnit.Case, async: true
 
+  alias GreenFairy.CQL.Scalars.String.MSSQL, as: StringMSSQL
   alias GreenFairy.CQL.Scalars.String.MySQL, as: StringMySQL
   alias GreenFairy.CQL.Scalars.String.SQLite, as: StringSQLite
-  alias GreenFairy.CQL.Scalars.String.MSSQL, as: StringMSSQL
 
   defmodule TestSchema do
     use Ecto.Schema

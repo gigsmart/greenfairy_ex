@@ -174,10 +174,15 @@ defmodule GreenFairy.CQL do
     all_filter_fields = adapter_filter_fields ++ custom_fields
     filter_fields = Enum.uniq_by(all_filter_fields, fn {name, _type} -> name end)
 
+    # Get associations from the struct module for nested filtering
+    association_fields = get_association_fields(struct_module)
+
     # Generate filter and order input types directly in this module
     # This ensures they exist before Absinthe's @before_compile validates type references
-    filter_input_ast = FilterInput.generate(type_name, filter_fields, custom_filter_meta)
-    order_input_ast = OrderInput.generate(type_name, filter_fields)
+    filter_input_ast =
+      FilterInput.generate(type_name, filter_fields, custom_filter_meta, association_fields)
+
+    order_input_ast = OrderInput.generate(type_name, filter_fields, association_fields)
 
     generate_cql_functions_and_types(
       filter_function_clauses,
@@ -191,7 +196,8 @@ defmodule GreenFairy.CQL do
       type_identifier,
       filter_fields,
       filter_input_ast,
-      order_input_ast
+      order_input_ast,
+      association_fields
     )
   end
 
@@ -233,6 +239,50 @@ defmodule GreenFairy.CQL do
     {fields, types}
   end
 
+  # Get association fields from an Ecto schema for nested filtering
+  # Returns a list of {field_name, related_type_name} tuples
+  defp get_association_fields(nil), do: []
+
+  defp get_association_fields(struct_module) do
+    if Code.ensure_loaded?(struct_module) and function_exported?(struct_module, :__schema__, 1) do
+      try do
+        struct_module.__schema__(:associations)
+        |> Enum.map(fn assoc_name ->
+          assoc = struct_module.__schema__(:association, assoc_name)
+          get_related_type_name(assoc_name, assoc)
+        end)
+        |> Enum.reject(&is_nil/1)
+      rescue
+        # Handle schemas that don't fully implement Ecto.Schema (e.g., mocks)
+        FunctionClauseError -> []
+      end
+    else
+      []
+    end
+  end
+
+  # Get the related type name from an association, handling different association types
+  defp get_related_type_name(assoc_name, %{related: related}) do
+    # Standard associations (belongs_to, has_one, has_many) have a :related key
+    related_type_name =
+      related
+      |> Module.split()
+      |> List.last()
+
+    {assoc_name, related_type_name}
+  end
+
+  defp get_related_type_name(_assoc_name, %Ecto.Association.HasThrough{}) do
+    # Skip has_through associations for now - they're complex and may not
+    # have a direct corresponding filter type
+    nil
+  end
+
+  defp get_related_type_name(_assoc_name, _assoc) do
+    # Skip unknown association types
+    nil
+  end
+
   defp get_custom_filter_info(custom_filters) do
     meta =
       Map.new(custom_filters, fn cf ->
@@ -266,7 +316,8 @@ defmodule GreenFairy.CQL do
          type_identifier,
          filter_fields,
          filter_input_ast,
-         order_input_ast
+         order_input_ast,
+         association_fields
        ) do
     filter_input_identifier = FilterInput.filter_type_identifier(type_name)
 
@@ -299,6 +350,10 @@ defmodule GreenFairy.CQL do
 
       def __cql_filterable_fields__ do
         Enum.uniq(unquote(adapter_fields) ++ unquote(custom_filter_fields))
+      end
+
+      def __cql_association_fields__ do
+        unquote(association_fields)
       end
 
       @doc """
@@ -427,7 +482,8 @@ defmodule GreenFairy.CQL do
         FilterInput.generate(
           config.type_name,
           __cql_filter_fields__(),
-          config.custom_filters
+          config.custom_filters,
+          __cql_association_fields__()
         )
       end
 
@@ -446,7 +502,8 @@ defmodule GreenFairy.CQL do
 
         OrderInput.generate(
           config.type_name,
-          orderable_fields
+          orderable_fields,
+          __cql_association_fields__()
         )
       end
 

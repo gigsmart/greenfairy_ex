@@ -207,7 +207,7 @@ defmodule GreenFairy.InputTest do
 
       # Should have extracted type references
       assert is_list(refs)
-      assert length(refs) > 0
+      assert refs != []
     end
 
     test "extracts custom atom types (non-builtins)" do

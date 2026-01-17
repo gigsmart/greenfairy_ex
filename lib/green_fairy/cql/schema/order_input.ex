@@ -71,6 +71,7 @@ defmodule GreenFairy.CQL.Schema.OrderInput do
 
   - `type_name` - The GraphQL type name (e.g., "User")
   - `fields` - List of `{field_name, field_type}` tuples for orderable fields
+  - `associations` - List of `{assoc_name, related_type_name}` tuples for nested ordering
 
   ## Example
 
@@ -80,19 +81,27 @@ defmodule GreenFairy.CQL.Schema.OrderInput do
         {:created_at, :datetime}
       ]
 
-      OrderInput.generate("User", fields)
+      associations = [
+        {:author, "User"},
+        {:posts, "Post"}
+      ]
+
+      OrderInput.generate("User", fields, associations)
   """
-  def generate(type_name, fields) do
+  def generate(type_name, fields, associations \\ []) do
     identifier = order_type_identifier(type_name)
     description = "Order input for #{type_name} type"
 
     field_defs = build_field_definitions(fields)
+    assoc_defs = build_association_definitions(associations)
+
+    all_fields = field_defs ++ assoc_defs
 
     # Use fully qualified macro call to ensure proper expansion
     quote do
       Absinthe.Schema.Notation.input_object unquote(identifier) do
         @desc unquote(description)
-        unquote_splicing(field_defs)
+        unquote_splicing(all_fields)
       end
     end
   end
@@ -104,6 +113,20 @@ defmodule GreenFairy.CQL.Schema.OrderInput do
 
       quote do
         Absinthe.Schema.Notation.field(unquote(field_name), unquote(order_type))
+      end
+    end)
+  end
+
+  # Build association field definitions for nested ordering
+  # Each association gets a field that references its related type's order input
+  defp build_association_definitions(associations) do
+    associations
+    |> Enum.map(fn {assoc_name, related_type_name} ->
+      # Generate the order type identifier for the related type
+      related_order_id = order_type_identifier(related_type_name)
+
+      quote do
+        Absinthe.Schema.Notation.field(unquote(assoc_name), unquote(related_order_id))
       end
     end)
   end

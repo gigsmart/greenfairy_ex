@@ -1,8 +1,8 @@
 defmodule GreenFairy.CQL.Scalars.CoordinatesAdaptersTest do
   use ExUnit.Case, async: true
 
-  alias GreenFairy.CQL.Scalars.Coordinates.Postgres, as: CoordinatesPostgres
   alias GreenFairy.CQL.Scalars.Coordinates.MySQL, as: CoordinatesMySQL
+  alias GreenFairy.CQL.Scalars.Coordinates.Postgres, as: CoordinatesPostgres
 
   defmodule TestSchema do
     use Ecto.Schema

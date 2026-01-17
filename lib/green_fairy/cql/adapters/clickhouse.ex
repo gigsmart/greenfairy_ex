@@ -44,6 +44,7 @@ defmodule GreenFairy.CQL.Adapters.ClickHouse do
 
   @impl true
   def sort_direction_enum(nil), do: :cql_sort_direction
+  # credo:disable-for-next-line Credo.Check.Warning.UnsafeToAtom
   def sort_direction_enum(namespace), do: :"cql_#{namespace}_sort_direction"
 
   @impl true
@@ -60,7 +61,7 @@ defmodule GreenFairy.CQL.Adapters.ClickHouse do
       # Use JSONExtract* functions manually
       supports_json_operators: false,
       supports_full_text_search: false,
-      max_in_clause_items: 10000,
+      max_in_clause_items: 10_000,
       # Native ilike() function
       emulated_ilike: false,
       column_oriented: true

@@ -365,7 +365,7 @@ defmodule GreenFairy.Field.Connection do
 
             # Fallback - check edges
             %{edges: edges}, _, _ ->
-              {:ok, length(edges) > 0}
+              {:ok, edges != []}
 
             # Default fallback
             _, _, _ ->

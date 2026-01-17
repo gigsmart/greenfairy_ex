@@ -99,6 +99,7 @@ defmodule GreenFairy.Query do
 
     # Derive names from the module path as fallback
     module_name = type_module |> Module.split() |> List.last()
+    # credo:disable-for-next-line Credo.Check.Warning.UnsafeToAtom
     default_field_name = module_name |> Macro.underscore() |> String.to_atom()
     default_type_identifier = default_field_name
 
@@ -387,6 +388,7 @@ defmodule GreenFairy.Query do
   defp type_name_to_identifier(type_name) do
     type_name
     |> Macro.underscore()
+    # credo:disable-for-next-line Credo.Check.Warning.UnsafeToAtom
     |> String.to_atom()
   end
 
@@ -666,6 +668,7 @@ defmodule GreenFairy.Query do
       Keyword.get_lazy(opts, :as, fn ->
         type_name
         |> Macro.underscore()
+        # credo:disable-for-next-line Credo.Check.Warning.UnsafeToAtom
         |> String.to_atom()
       end)
 

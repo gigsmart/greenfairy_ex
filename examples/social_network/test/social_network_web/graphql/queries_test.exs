@@ -18,8 +18,8 @@ defmodule SocialNetworkWeb.GraphQL.QueriesTest do
     end
 
     test "returns all users" do
-      user1 = create_user(%{email: "alice@example.com", username: "alice"})
-      user2 = create_user(%{email: "bob@example.com", username: "bob"})
+      _user1 = create_user(%{email: "alice@example.com", username: "alice"})
+      _user2 = create_user(%{email: "bob@example.com", username: "bob"})
 
       query = """
       query {
@@ -137,8 +137,8 @@ defmodule SocialNetworkWeb.GraphQL.QueriesTest do
 
     test "returns all posts" do
       user = create_user()
-      post1 = create_post(user, %{body: "First post"})
-      post2 = create_post(user, %{body: "Second post"})
+      _post1 = create_post(user, %{body: "First post"})
+      _post2 = create_post(user, %{body: "Second post"})
 
       query = """
       query {

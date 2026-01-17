@@ -28,7 +28,8 @@ defmodule GreenFairy.CQL.OrderOperator do
     :field,
     direction: :asc,
     priority: [],
-    geo_distance: nil
+    geo_distance: nil,
+    association_path: []
   ]
 
   @type direction() ::
@@ -43,7 +44,8 @@ defmodule GreenFairy.CQL.OrderOperator do
           field: atom(),
           direction: direction(),
           priority: [term()],
-          geo_distance: {number(), number()} | nil
+          geo_distance: {number(), number()} | nil,
+          association_path: [atom()]
         }
 
   @doc """
@@ -97,4 +99,10 @@ defmodule GreenFairy.CQL.OrderOperator do
   """
   def priority_order?(%__MODULE__{priority: []}), do: false
   def priority_order?(%__MODULE__{priority: _}), do: true
+
+  @doc """
+  Checks if this is an association order.
+  """
+  def association_order?(%__MODULE__{association_path: []}), do: false
+  def association_order?(%__MODULE__{association_path: _}), do: true
 end

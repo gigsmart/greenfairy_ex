@@ -75,6 +75,7 @@ defmodule GreenFairy.CQL.AdapterCapabilities do
       {1, 6}
   """
   def version(capabilities, component) do
+    # credo:disable-for-next-line Credo.Check.Warning.UnsafeToAtom
     Map.get(capabilities, :"#{component}_version")
   end
 
@@ -110,38 +111,34 @@ defmodule GreenFairy.CQL.AdapterCapabilities do
   end
 
   defp detect_postgres_version(repo) do
-    try do
-      result = repo.query!("SELECT version()")
-      version_string = result.rows |> List.first() |> List.first()
+    result = repo.query!("SELECT version()")
+    version_string = result.rows |> List.first() |> List.first()
 
-      # Parse version from string like "PostgreSQL 15.3 on ..."
-      case Regex.run(~r/PostgreSQL (\d+)\.(\d+)/, version_string) do
-        [_, major, minor] ->
-          {String.to_integer(major), String.to_integer(minor)}
+    # Parse version from string like "PostgreSQL 15.3 on ..."
+    case Regex.run(~r/PostgreSQL (\d+)\.(\d+)/, version_string) do
+      [_, major, minor] ->
+        {String.to_integer(major), String.to_integer(minor)}
 
-        _ ->
-          Logger.warning("Could not parse PostgreSQL version: #{version_string}")
-          {0, 0}
-      end
-    rescue
-      e ->
-        Logger.error("Failed to detect PostgreSQL version: #{inspect(e)}")
+      _ ->
+        Logger.warning("Could not parse PostgreSQL version: #{version_string}")
         {0, 0}
     end
+  rescue
+    e ->
+      Logger.error("Failed to detect PostgreSQL version: #{inspect(e)}")
+      {0, 0}
   end
 
   defp detect_postgres_extensions(repo) do
-    try do
-      result = repo.query!("SELECT extname FROM pg_extension")
+    result = repo.query!("SELECT extname FROM pg_extension")
 
-      result.rows
-      |> List.flatten()
-      |> Enum.map(&String.to_atom/1)
-    rescue
-      e ->
-        Logger.error("Failed to detect PostgreSQL extensions: #{inspect(e)}")
-        []
-    end
+    result.rows
+    |> List.flatten()
+    |> Enum.map(&String.to_atom/1)
+  rescue
+    e ->
+      Logger.error("Failed to detect PostgreSQL extensions: #{inspect(e)}")
+      []
   end
 
   # === MySQL Capability Detection ===
@@ -173,24 +170,22 @@ defmodule GreenFairy.CQL.AdapterCapabilities do
   end
 
   defp detect_mysql_version(repo) do
-    try do
-      result = repo.query!("SELECT VERSION()")
-      version_string = result.rows |> List.first() |> List.first()
+    result = repo.query!("SELECT VERSION()")
+    version_string = result.rows |> List.first() |> List.first()
 
-      # Parse version from string like "8.0.33" or "5.7.42-log"
-      case Regex.run(~r/(\d+)\.(\d+)\.(\d+)/, version_string) do
-        [_, major, minor, patch] ->
-          {String.to_integer(major), String.to_integer(minor), String.to_integer(patch)}
+    # Parse version from string like "8.0.33" or "5.7.42-log"
+    case Regex.run(~r/(\d+)\.(\d+)\.(\d+)/, version_string) do
+      [_, major, minor, patch] ->
+        {String.to_integer(major), String.to_integer(minor), String.to_integer(patch)}
 
-        _ ->
-          Logger.warning("Could not parse MySQL version: #{version_string}")
-          {0, 0, 0}
-      end
-    rescue
-      e ->
-        Logger.error("Failed to detect MySQL version: #{inspect(e)}")
+      _ ->
+        Logger.warning("Could not parse MySQL version: #{version_string}")
         {0, 0, 0}
     end
+  rescue
+    e ->
+      Logger.error("Failed to detect MySQL version: #{inspect(e)}")
+      {0, 0, 0}
   end
 
   # === SQLite Capability Detection ===
@@ -223,24 +218,22 @@ defmodule GreenFairy.CQL.AdapterCapabilities do
   end
 
   defp detect_sqlite_version(repo) do
-    try do
-      result = repo.query!("SELECT sqlite_version()")
-      version_string = result.rows |> List.first() |> List.first()
+    result = repo.query!("SELECT sqlite_version()")
+    version_string = result.rows |> List.first() |> List.first()
 
-      # Parse version from string like "3.39.5"
-      case Regex.run(~r/(\d+)\.(\d+)\.(\d+)/, version_string) do
-        [_, major, minor, patch] ->
-          {String.to_integer(major), String.to_integer(minor), String.to_integer(patch)}
+    # Parse version from string like "3.39.5"
+    case Regex.run(~r/(\d+)\.(\d+)\.(\d+)/, version_string) do
+      [_, major, minor, patch] ->
+        {String.to_integer(major), String.to_integer(minor), String.to_integer(patch)}
 
-        _ ->
-          Logger.warning("Could not parse SQLite version: #{version_string}")
-          {0, 0, 0}
-      end
-    rescue
-      e ->
-        Logger.error("Failed to detect SQLite version: #{inspect(e)}")
+      _ ->
+        Logger.warning("Could not parse SQLite version: #{version_string}")
         {0, 0, 0}
     end
+  rescue
+    e ->
+      Logger.error("Failed to detect SQLite version: #{inspect(e)}")
+      {0, 0, 0}
   end
 
   defp detect_sqlite_extensions(repo) do
@@ -273,12 +266,10 @@ defmodule GreenFairy.CQL.AdapterCapabilities do
   end
 
   defp test_sqlite_extension(repo, sql) do
-    try do
-      repo.query!(sql)
-      true
-    rescue
-      _ -> false
-    end
+    repo.query!(sql)
+    true
+  rescue
+    _ -> false
   end
 
   # === MSSQL Capability Detection ===
@@ -312,24 +303,22 @@ defmodule GreenFairy.CQL.AdapterCapabilities do
   end
 
   defp detect_mssql_version(repo) do
-    try do
-      result = repo.query!("SELECT @@VERSION")
-      version_string = result.rows |> List.first() |> List.first()
+    result = repo.query!("SELECT @@VERSION")
+    version_string = result.rows |> List.first() |> List.first()
 
-      # Parse version from string like "Microsoft SQL Server 2019 (RTM) - 15.0.2000.5"
-      case Regex.run(~r/SQL Server \d+ .* - (\d+)\.(\d+)/, version_string) do
-        [_, major, minor] ->
-          {String.to_integer(major), String.to_integer(minor)}
+    # Parse version from string like "Microsoft SQL Server 2019 (RTM) - 15.0.2000.5"
+    case Regex.run(~r/SQL Server \d+ .* - (\d+)\.(\d+)/, version_string) do
+      [_, major, minor] ->
+        {String.to_integer(major), String.to_integer(minor)}
 
-        _ ->
-          Logger.warning("Could not parse MSSQL version: #{version_string}")
-          {0, 0}
-      end
-    rescue
-      e ->
-        Logger.error("Failed to detect MSSQL version: #{inspect(e)}")
+      _ ->
+        Logger.warning("Could not parse MSSQL version: #{version_string}")
         {0, 0}
     end
+  rescue
+    e ->
+      Logger.error("Failed to detect MSSQL version: #{inspect(e)}")
+      {0, 0}
   end
 
   # === Helpers ===

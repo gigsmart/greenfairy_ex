@@ -93,7 +93,7 @@ defmodule GreenFairy.Authorization.UnauthorizedBehaviorTest do
 
       assert result.state == :resolved
       assert result.value == nil
-      assert length(result.errors) > 0
+      assert result.errors != []
       assert Enum.any?(result.errors, &String.contains?(&1.message, "Not authorized"))
     end
 
@@ -130,7 +130,7 @@ defmodule GreenFairy.Authorization.UnauthorizedBehaviorTest do
       result = FieldMiddleware.call(resolution, %{})
 
       assert result.state == :resolved
-      assert length(result.errors) > 0
+      assert result.errors != []
     end
 
     test "field-level config overrides type-level config", %{user: user} do
@@ -244,7 +244,7 @@ defmodule GreenFairy.Authorization.UnauthorizedBehaviorTest do
       result = GreenFairy.Authorization.FieldMiddleware.call(resolution, %{})
 
       assert result.state == :resolved
-      assert length(result.errors) > 0
+      assert result.errors != []
     end
   end
 

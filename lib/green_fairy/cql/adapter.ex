@@ -427,13 +427,17 @@ defmodule GreenFairy.CQL.Adapter do
     parts = Module.split(struct_module)
 
     if length(parts) >= 2 do
-      app_module = parts |> Enum.take(1) |> Module.concat()
-      repo_module = Module.concat(app_module, Repo)
+      try do
+        app_module = parts |> Enum.take(1) |> Module.safe_concat()
+        repo_module = Module.safe_concat(app_module, Repo)
 
-      if Code.ensure_loaded?(repo_module) and function_exported?(repo_module, :__adapter__, 0) do
-        repo_module
-      else
-        nil
+        if Code.ensure_loaded?(repo_module) and function_exported?(repo_module, :__adapter__, 0) do
+          repo_module
+        else
+          nil
+        end
+      rescue
+        ArgumentError -> nil
       end
     else
       nil
