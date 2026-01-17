@@ -166,10 +166,11 @@ defmodule GreenFairy.Mutation do
   defp extract_field_type_refs({:field, _, args}) do
     # Field can be: [name, type] or [name, type, do: block]
     # Extract return type
-    return_type_refs = case extract_type_from_args(args) do
-      nil -> []
-      ref -> [ref]
-    end
+    return_type_refs =
+      case extract_type_from_args(args) do
+        nil -> []
+        ref -> [ref]
+      end
 
     # Extract arg types from do block
     arg_type_refs = extract_arg_types_from_field(args)

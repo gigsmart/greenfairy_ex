@@ -220,7 +220,7 @@ defmodule GreenFairy.CQL.Schema.OperatorInput do
     # regardless of what's imported in the calling context
     quote do
       Absinthe.Schema.Notation.input_object unquote(identifier) do
-        unquote_splicing(fields)
+        (unquote_splicing(fields))
       end
     end
   end
@@ -279,15 +279,25 @@ defmodule GreenFairy.CQL.Schema.OperatorInput do
   # Range operators
   # For _between, we use a list with exactly 2 elements [start, end]
   # This matches GigSmart's CqlOpDatetimeBetweenInput pattern but simpler
-  defp operator_field(:_between, scalar), do: quote(do: Absinthe.Schema.Notation.field(:_between, list_of(non_null(unquote(scalar)))))
+  defp operator_field(:_between, scalar),
+    do: quote(do: Absinthe.Schema.Notation.field(:_between, list_of(non_null(unquote(scalar)))))
 
   # Array operators
   defp operator_field(:_includes, scalar), do: field_ast(:_includes, scalar)
   defp operator_field(:_excludes, scalar), do: field_ast(:_excludes, scalar)
-  defp operator_field(:_includes_all, scalar), do: quote(do: Absinthe.Schema.Notation.field(:_includes_all, list_of(non_null(unquote(scalar)))))
-  defp operator_field(:_excludes_all, scalar), do: quote(do: Absinthe.Schema.Notation.field(:_excludes_all, list_of(non_null(unquote(scalar)))))
-  defp operator_field(:_includes_any, scalar), do: quote(do: Absinthe.Schema.Notation.field(:_includes_any, list_of(non_null(unquote(scalar)))))
-  defp operator_field(:_excludes_any, scalar), do: quote(do: Absinthe.Schema.Notation.field(:_excludes_any, list_of(non_null(unquote(scalar)))))
+
+  defp operator_field(:_includes_all, scalar),
+    do: quote(do: Absinthe.Schema.Notation.field(:_includes_all, list_of(non_null(unquote(scalar)))))
+
+  defp operator_field(:_excludes_all, scalar),
+    do: quote(do: Absinthe.Schema.Notation.field(:_excludes_all, list_of(non_null(unquote(scalar)))))
+
+  defp operator_field(:_includes_any, scalar),
+    do: quote(do: Absinthe.Schema.Notation.field(:_includes_any, list_of(non_null(unquote(scalar)))))
+
+  defp operator_field(:_excludes_any, scalar),
+    do: quote(do: Absinthe.Schema.Notation.field(:_excludes_any, list_of(non_null(unquote(scalar)))))
+
   defp operator_field(:_is_empty, _scalar), do: field_ast(:_is_empty, :boolean)
 
   # Elasticsearch-specific full-text search operators

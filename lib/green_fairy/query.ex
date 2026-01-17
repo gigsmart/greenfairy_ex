@@ -26,7 +26,7 @@ defmodule GreenFairy.Query do
     quote do
       use Absinthe.Schema.Notation
 
-      import GreenFairy.Query, only: [queries: 1, expose: 1, expose: 2, node_field: 0]
+      import GreenFairy.Query, only: [queries: 1, expose: 1, expose: 2, node_field: 0, list: 2]
       import GreenFairy.Field.Connection, only: [connection: 2, connection: 3]
 
       Module.register_attribute(__MODULE__, :green_fairy_queries, accumulate: false)
@@ -89,9 +89,7 @@ defmodule GreenFairy.Query do
 
       # We need to get type info after the type module is compiled
       # Use unquote_splicing with a helper that defers the lookup
-      unquote(
-        generate_expose_field_ast(type_module_ast, field_name_opt, __CALLER__)
-      )
+      unquote(generate_expose_field_ast(type_module_ast, field_name_opt, __CALLER__))
     end
   end
 
@@ -230,6 +228,87 @@ defmodule GreenFairy.Query do
   end
 
   @doc """
+  Generates a list field with automatic CQL filtering and ordering.
+
+  This creates a list query field that:
+  1. Auto-injects `where` and `order_by` args from the type's CQL config
+  2. Applies CQL filters using QueryBuilder
+  3. Returns a flat list of records
+
+  ## Usage
+
+      queries do
+        list :users, Types.User
+        list :posts, Types.Post
+      end
+
+  This generates:
+
+      field :users, list_of(:user) do
+        arg :where, :cql_filter_user_input
+        arg :order_by, list_of(:cql_order_user_input)
+
+        resolve fn args, %{context: ctx} ->
+          User
+          |> QueryBuilder.apply_where(args[:where], Types.User)
+          |> QueryBuilder.apply_order_by(args[:order_by], Types.User)
+          |> Repo.all()
+        end
+      end
+
+  """
+  defmacro list(field_name, type_module) do
+    quote do
+      require GreenFairy.Query
+      GreenFairy.Query.__define_list__(unquote(field_name), unquote(type_module))
+    end
+  end
+
+  @doc false
+  defmacro __define_list__(field_name, type_module) do
+    env = __CALLER__
+    type_module_expanded = Macro.expand(type_module, env)
+
+    # Get type info
+    type_identifier = type_module_expanded.__green_fairy_identifier__()
+    struct_module = type_module_expanded.__green_fairy_struct__()
+    filter_id = type_module_expanded.__cql_filter_input_identifier__()
+    order_id = type_module_expanded.__cql_order_input_identifier__()
+
+    quote do
+      field unquote(field_name), list_of(unquote(type_identifier)) do
+        arg(:where, unquote(filter_id))
+        arg(:order_by, list_of(unquote(order_id)))
+
+        resolve(fn args, %{context: ctx} ->
+          struct_module = unquote(struct_module)
+
+          repo =
+            Map.get(ctx, :repo) ||
+              Map.get(ctx, :current_repo) ||
+              GreenFairy.Adapters.Ecto.get_repo_for_schema(struct_module)
+
+          with {:ok, query} <-
+                 GreenFairy.CQL.QueryBuilder.apply_where(
+                   struct_module,
+                   args[:where],
+                   unquote(type_module_expanded)
+                 ) do
+            query =
+              GreenFairy.CQL.QueryBuilder.apply_order_by(
+                query,
+                args[:order_by],
+                unquote(type_module_expanded)
+              )
+
+            {:ok, repo.all(query)}
+          end
+        end)
+      end
+    end
+  end
+
+  @doc """
   Resolves a Node by its global ID.
 
   This function:
@@ -300,8 +379,8 @@ defmodule GreenFairy.Query do
 
   defp get_repo_for_type(_type_module, ctx) do
     # Try to get repo from context (set by schema)
+    # Or try the default configured repo
     Map.get(ctx, :repo) ||
-      # Or try the default configured repo
       Application.get_env(:green_fairy, :repo)
   end
 
@@ -466,10 +545,11 @@ defmodule GreenFairy.Query do
   defp extract_field_type_refs({:field, _, args}) do
     # Field can be: [name, type] or [name, type, do: block]
     # Extract return type
-    return_type_refs = case extract_type_from_args(args) do
-      nil -> []
-      ref -> [ref]
-    end
+    return_type_refs =
+      case extract_type_from_args(args) do
+        nil -> []
+        ref -> [ref]
+      end
 
     # Extract arg types from do block
     arg_type_refs = extract_arg_types_from_field(args)
@@ -675,4 +755,3 @@ defmodule GreenFairy.Query do
     end)
   end
 end
-

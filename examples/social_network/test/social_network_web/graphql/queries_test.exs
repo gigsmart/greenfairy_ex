@@ -158,14 +158,14 @@ defmodule SocialNetworkWeb.GraphQL.QueriesTest do
       assert "Second post" in bodies
     end
 
-    test "filters posts by visibility" do
+    test "filters posts by visibility using CQL" do
       user = create_user()
       _public_post = create_post(user, %{body: "Public post", visibility: :public})
       _private_post = create_post(user, %{body: "Private post", visibility: :private})
 
       query = """
-      query GetPosts($visibility: PostVisibility) {
-        posts(visibility: $visibility) {
+      query GetPosts($where: CqlFilterPostInput) {
+        posts(where: $where) {
           id
           body
           visibility
@@ -173,7 +173,7 @@ defmodule SocialNetworkWeb.GraphQL.QueriesTest do
       }
       """
 
-      result = run_query(query, %{"visibility" => "PUBLIC"})
+      result = run_query(query, %{"where" => %{"visibility" => %{"_eq" => "public"}}})
       data = get_data(result)
 
       assert length(data["posts"]) == 1

@@ -99,10 +99,10 @@ defmodule GreenFairy.Schema do
     mutation_module = if mutation_module_ast, do: Macro.expand(mutation_module_ast, __CALLER__), else: nil
     subscription_module = if subscription_module_ast, do: Macro.expand(subscription_module_ast, __CALLER__), else: nil
 
-    # Generate import_types and root blocks for explicit modules NOW (in __using__)
-    # This ensures they run BEFORE Absinthe.Schema's __before_compile__
+    # Generate import_types for explicit modules NOW (in __using__)
+    # Query block is deferred to __before_compile__ so expose fields can be included
     explicit_imports = generate_using_imports(query_module, mutation_module, subscription_module)
-    query_block = generate_using_query_block(query_module)
+    # Only mutation and subscription blocks are generated here - query is deferred
     mutation_block = generate_using_mutation_block(mutation_module)
     subscription_block = generate_using_subscription_block(subscription_module)
 
@@ -139,8 +139,8 @@ defmodule GreenFairy.Schema do
       # Import explicit root modules (must happen before query/mutation/subscription blocks)
       unquote_splicing(explicit_imports)
 
-      # Generate root types for explicit modules
-      unquote(query_block)
+      # Query block is generated in __before_compile__ to include expose fields
+      # Only mutation and subscription are generated here
       unquote(mutation_block)
       unquote(subscription_block)
 
@@ -157,18 +157,6 @@ defmodule GreenFairy.Schema do
         import_types unquote(module)
       end
     end)
-  end
-
-  defp generate_using_query_block(nil), do: nil
-
-  defp generate_using_query_block(module) do
-    identifier = module.__green_fairy_query_fields_identifier__()
-
-    quote do
-      query do
-        import_fields unquote(identifier)
-      end
-    end
   end
 
   defp generate_using_mutation_block(nil), do: nil
@@ -292,7 +280,8 @@ defmodule GreenFairy.Schema do
 
     # Generate root operation types for inline and discovered ONLY (explicit handled in __using__)
     # Only generate if there's no explicit module (explicit modules are handled in __using__)
-    query_block = generate_before_compile_root_block(:query, query_module, inline_query, grouped[:queries] || [], expose_fields)
+    query_block =
+      generate_before_compile_root_block(:query, query_module, inline_query, grouped[:queries] || [], expose_fields)
 
     mutation_block =
       generate_before_compile_root_block(:mutation, mutation_module, inline_mutation, grouped[:mutations] || [])
@@ -465,19 +454,29 @@ defmodule GreenFairy.Schema do
 
   # Generate root block for __before_compile__ - skips if explicit module exists
   # (explicit modules are handled in __using__)
-  defp generate_before_compile_root_block(_type, explicit_module, _inline_block, _discovered_modules, _expose_fields \\ [])
+  defp generate_before_compile_root_block(
+         _type,
+         explicit_module,
+         _inline_block,
+         _discovered_modules,
+         _expose_fields \\ []
+       )
 
-  defp generate_before_compile_root_block(_type, explicit_module, _inline_block, _discovered_modules, _expose_fields)
-       when not is_nil(explicit_module) do
-    # Explicit module is handled in __using__, return nil here
+  # For non-query types with explicit module, return nil (handled in __using__)
+  defp generate_before_compile_root_block(type, explicit_module, _inline_block, _discovered_modules, _expose_fields)
+       when not is_nil(explicit_module) and type != :query do
     nil
   end
 
-  defp generate_before_compile_root_block(:query, _explicit_module, inline_block, discovered_modules, expose_fields) do
+  defp generate_before_compile_root_block(:query, explicit_module, inline_block, discovered_modules, expose_fields) do
     # Generate expose fields AST
     expose_ast = generate_expose_query_fields(expose_fields)
 
     cond do
+      # Explicit module - generate query block with both import_fields and expose fields
+      not is_nil(explicit_module) ->
+        generate_query_with_explicit_and_expose(explicit_module, expose_ast)
+
       inline_block != nil ->
         # Combine inline with expose fields
         combined = combine_query_blocks(inline_block, expose_ast)
@@ -492,8 +491,8 @@ defmodule GreenFairy.Schema do
     end
   end
 
+  # Handle non-query types (mutation, subscription) with inline or discovered modules
   defp generate_before_compile_root_block(type, _explicit_module, inline_block, discovered_modules, _expose_fields) do
-    # Only handle inline and discovered (explicit is nil at this point)
     cond do
       inline_block != nil ->
         generate_root_from_inline(type, inline_block)
@@ -503,6 +502,28 @@ defmodule GreenFairy.Schema do
 
       true ->
         nil
+    end
+  end
+
+  # Generate query block with explicit module import_fields and expose fields
+  defp generate_query_with_explicit_and_expose(explicit_module, nil) do
+    identifier = explicit_module.__green_fairy_query_fields_identifier__()
+
+    quote do
+      query do
+        import_fields unquote(identifier)
+      end
+    end
+  end
+
+  defp generate_query_with_explicit_and_expose(explicit_module, expose_ast) do
+    identifier = explicit_module.__green_fairy_query_fields_identifier__()
+
+    quote do
+      query do
+        import_fields unquote(identifier)
+        unquote(expose_ast)
+      end
     end
   end
 
@@ -583,8 +604,8 @@ defmodule GreenFairy.Schema do
   defp get_field_type_from_adapter(struct_module, field) do
     adapter = GreenFairy.Adapter.find_adapter(struct_module, nil)
 
-    if adapter && function_exported?(adapter.__struct__, :field_type, 2) do
-      case adapter.__struct__.field_type(struct_module, field) do
+    if adapter && function_exported?(adapter, :field_type, 2) do
+      case adapter.field_type(struct_module, field) do
         :id -> :id
         :integer -> :integer
         :string -> :string

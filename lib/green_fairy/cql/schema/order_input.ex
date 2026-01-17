@@ -134,7 +134,9 @@ defmodule GreenFairy.CQL.Schema.OrderInput do
     quote do
       Absinthe.Schema.Notation.input_object :cql_order_standard_input do
         @desc "Standard order input with direction"
-        Absinthe.Schema.Notation.field(:direction, non_null(:cql_sort_direction), description: "The direction of the sort")
+        Absinthe.Schema.Notation.field(:direction, non_null(:cql_sort_direction),
+          description: "The direction of the sort"
+        )
       end
     end
   end
@@ -147,8 +149,13 @@ defmodule GreenFairy.CQL.Schema.OrderInput do
     quote do
       Absinthe.Schema.Notation.input_object :cql_order_geo_input do
         @desc "Geo-distance based order input"
-        Absinthe.Schema.Notation.field(:direction, non_null(:cql_sort_direction), description: "The direction of the sort")
-        Absinthe.Schema.Notation.field(:center, :coordinates, description: "The center coordinates to calculate distance from")
+        Absinthe.Schema.Notation.field(:direction, non_null(:cql_sort_direction),
+          description: "The direction of the sort"
+        )
+
+        Absinthe.Schema.Notation.field(:center, :coordinates,
+          description: "The center coordinates to calculate distance from"
+        )
       end
     end
   end
@@ -179,8 +186,13 @@ defmodule GreenFairy.CQL.Schema.OrderInput do
     quote do
       Absinthe.Schema.Notation.input_object unquote(identifier) do
         @desc unquote(description)
-        Absinthe.Schema.Notation.field(:direction, non_null(:cql_sort_direction), description: "The direction of the sort")
-        Absinthe.Schema.Notation.field(:priority, list_of(unquote(enum_name)), description: "The priority order of enum values")
+        Absinthe.Schema.Notation.field(:direction, non_null(:cql_sort_direction),
+          description: "The direction of the sort"
+        )
+
+        Absinthe.Schema.Notation.field(:priority, list_of(unquote(enum_name)),
+          description: "The priority order of enum values"
+        )
       end
     end
   end

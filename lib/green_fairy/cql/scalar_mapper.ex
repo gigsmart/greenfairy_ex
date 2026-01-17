@@ -145,15 +145,20 @@ defmodule GreenFairy.CQL.ScalarMapper do
   defp built_in_scalar_for({:array, :integer}), do: Scalars.ArrayInteger
   defp built_in_scalar_for({:array, :id}), do: Scalars.ArrayID
   defp built_in_scalar_for({:array, :binary_id}), do: Scalars.ArrayID
+  # Ecto.Enum array - both old 3-tuple and new 2-tuple formats
   defp built_in_scalar_for({:array, {:parameterized, Ecto.Enum, _}}), do: Scalars.ArrayEnum
+  defp built_in_scalar_for({:array, {:parameterized, {Ecto.Enum, _}}}), do: Scalars.ArrayEnum
   # Unknown array types
   defp built_in_scalar_for({:array, _}), do: nil
 
   # Ecto.Enum (built-in parameterized enum type)
+  # Support both old 3-tuple format and new 2-tuple format
   defp built_in_scalar_for({:parameterized, Ecto.Enum, _}), do: Scalars.Enum
+  defp built_in_scalar_for({:parameterized, {Ecto.Enum, _}}), do: Scalars.Enum
 
-  # Embedded schemas not filterable
+  # Embedded schemas not filterable - both formats
   defp built_in_scalar_for({:parameterized, Ecto.Embedded, _}), do: nil
+  defp built_in_scalar_for({:parameterized, {Ecto.Embedded, _}}), do: nil
 
   # EctoEnum library support (https://hexdocs.pm/ecto_enum)
   # EctoEnum types are modules that implement __enum_map__/0

@@ -9,10 +9,12 @@ defmodule SocialNetworkWeb.GraphQL.Queries.RootQuery do
   1. **Type-side `expose`** - Types with `expose :id` auto-generate query fields
      This is the recommended approach for simple lookups.
 
-  2. **Query-side fields** - Custom fields defined in this module for:
-     - Complex queries with filters
-     - List queries
-     - Fields requiring custom resolver logic
+  2. **Query-side `list`** - Auto-generates list fields with CQL filtering
+     No custom resolver needed - CQL filtering is automatic.
+
+  3. **Query-side `connection`** - Auto-generates paginated connections with CQL
+
+  4. **Custom fields** - For fields requiring custom resolver logic
 
   ## Example
 
@@ -20,14 +22,13 @@ defmodule SocialNetworkWeb.GraphQL.Queries.RootQuery do
 
       type "User", struct: User do
         expose :id          # Generates: user(id: ID!): User
-        expose :email       # Generates: userByEmail(email: String!): User
       end
 
   In queries (this module):
 
       queries do
         node_field()        # Relay Node resolution
-        field :users, list_of(:user) do ... end
+        list :users, Types.User   # List with CQL filtering
       end
 
   """
@@ -37,41 +38,20 @@ defmodule SocialNetworkWeb.GraphQL.Queries.RootQuery do
 
   queries do
     # Relay Node field - automatically decodes GlobalId and fetches the record
-    # Uses the schema's configured repo and global_id implementation
     node_field()
 
     # NOTE: user(id:) and post(id:) are auto-generated from the types
     # because they have `expose :id` defined. No need to define them here!
 
+    # List queries with automatic CQL filtering
+    # No resolver needed - the list macro handles everything!
+    list :users, Types.User
+    list :posts, Types.Post
+
     # Current viewer - custom field (not exposed via GlobalId)
     field :viewer, Types.User do
       resolve fn _, %{context: context} ->
         {:ok, context[:current_user]}
-      end
-    end
-
-    # List queries - these still need custom resolvers
-    field :users, list_of(Types.User) do
-      resolve fn _args, _resolution ->
-        {:ok, SocialNetwork.Repo.all(SocialNetwork.Accounts.User)}
-      end
-    end
-
-    field :posts, list_of(Types.Post) do
-      arg :visibility, :post_visibility
-
-      resolve fn args, _resolution ->
-        import Ecto.Query
-        query = from(p in SocialNetwork.Content.Post)
-
-        query =
-          if args[:visibility] do
-            from p in query, where: p.visibility == ^args[:visibility]
-          else
-            query
-          end
-
-        {:ok, SocialNetwork.Repo.all(query)}
       end
     end
   end

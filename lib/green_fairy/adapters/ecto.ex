@@ -185,7 +185,15 @@ defmodule GreenFairy.Adapters.Ecto do
     end
   end
 
-  defp get_repo_for_schema(module) do
+  @doc """
+  Gets the Ecto repo for a given schema module.
+
+  The repo is determined by:
+  1. Checking if the module defines `__repo__/0`
+  2. Checking the `:green_fairy, :repo` application config
+  3. Inferring from the module name (e.g., MyApp.Accounts.User -> MyApp.Repo)
+  """
+  def get_repo_for_schema(module) do
     # Try to find repo from common patterns
     cond do
       # Check if module defines __repo__

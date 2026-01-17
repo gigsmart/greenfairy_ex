@@ -38,6 +38,100 @@ defmodule MyApp.GraphQL.Queries.UserQueries do
 end
 ```
 
+## List Queries with CQL
+
+The `list` macro generates list query fields with automatic CQL filtering and ordering:
+
+```elixir
+defmodule MyApp.GraphQL.RootQuery do
+  use GreenFairy.Query
+
+  alias MyApp.GraphQL.Types
+
+  queries do
+    # Auto-generates: users(where: CqlFilterUserInput, orderBy: [CqlOrderUserInput]): [User]
+    list :users, Types.User
+
+    # Auto-generates: posts(where: CqlFilterPostInput, orderBy: [CqlOrderPostInput]): [Post]
+    list :posts, Types.Post
+  end
+end
+```
+
+The `list` macro:
+1. Injects `where` and `order_by` arguments from the type's CQL configuration
+2. Automatically applies CQL filters using QueryBuilder
+3. Gets the repo from the type's struct adapter (no global config needed)
+4. Returns a flat list of records
+
+### Generated GraphQL
+
+```graphql
+query {
+  users(where: { email: { _contains: "@example.com" } }) {
+    id
+    email
+    name
+  }
+}
+
+query {
+  posts(
+    where: { visibility: { _eq: "public" } }
+    orderBy: [{ insertedAt: DESC }]
+  ) {
+    id
+    title
+    body
+  }
+}
+```
+
+## Connection Queries with CQL
+
+The `connection` macro generates paginated connection fields with CQL support:
+
+```elixir
+defmodule MyApp.GraphQL.RootQuery do
+  use GreenFairy.Query
+
+  alias MyApp.GraphQL.Types
+
+  queries do
+    # Paginated connection with CQL filtering
+    connection :users, Types.User
+
+    # Custom connection options
+    connection :posts, Types.Post do
+      arg :author_id, :id  # Additional custom args
+    end
+  end
+end
+```
+
+The `connection` macro generates Relay-compliant pagination:
+
+```graphql
+query {
+  users(first: 10, after: "cursor", where: { active: { _eq: true } }) {
+    edges {
+      cursor
+      node {
+        id
+        email
+      }
+    }
+    pageInfo {
+      hasNextPage
+      hasPreviousPage
+      startCursor
+      endCursor
+    }
+    totalCount
+  }
+}
+```
+
 ## Relay Node Field
 
 The `node_field()` macro generates a Relay-compliant `node(id: ID!)` query field that can resolve any type by its GlobalId:

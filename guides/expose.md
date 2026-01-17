@@ -228,8 +228,83 @@ This generates:
 - `post(id: ID!): Post` - Fetch by GlobalId
 - `postBySlug(slug: String!): Post` - Fetch by slug
 
+## Complete Query Pattern
+
+GreenFairy provides three complementary macros for query fields:
+
+| Macro | Purpose | Where Defined |
+|-------|---------|---------------|
+| `expose :id` | Single record by ID | In the type definition |
+| `list :users` | Flat list with CQL filters | In the Query module |
+| `connection :users` | Paginated list with CQL | In the Query module |
+
+### Example: Complete Setup
+
+```elixir
+# Type defines expose for single-record lookup
+defmodule MyApp.GraphQL.Types.User do
+  use GreenFairy.Type
+
+  type "User", struct: MyApp.Accounts.User do
+    implements MyApp.GraphQL.Interfaces.Node
+
+    # Auto-generates: user(id: ID!): User
+    expose :id
+
+    field :id, non_null(:id)
+    field :email, non_null(:string)
+    field :name, :string
+  end
+end
+
+# Query module defines list/connection for collection queries
+defmodule MyApp.GraphQL.RootQuery do
+  use GreenFairy.Query
+
+  alias MyApp.GraphQL.Types
+
+  queries do
+    node_field()
+
+    # NOTE: user(id:) is auto-generated from the type's expose :id
+    # No need to define it here!
+
+    # Flat list with CQL filtering
+    list :users, Types.User
+
+    # Or paginated connection
+    connection :users_paginated, Types.User
+  end
+end
+```
+
+This generates:
+
+```graphql
+type Query {
+  # From expose :id
+  user(id: ID!): User
+
+  # From node_field()
+  node(id: ID!): Node
+
+  # From list :users
+  users(where: CqlFilterUserInput, orderBy: [CqlOrderUserInput]): [User]
+
+  # From connection :users_paginated
+  usersPaginated(
+    first: Int
+    after: String
+    last: Int
+    before: String
+    where: CqlFilterUserInput
+    orderBy: [CqlOrderUserInput]
+  ): UserConnection
+}
+```
+
 ## See Also
 
-- [Operations Guide](operations.md) - `node_field()` macro for Relay Node resolution
+- [Operations Guide](operations.md) - `list`, `connection`, and `node_field()` macros
 - [Relay Guide](relay.md) - Full Relay specification support
 - [Global ID Guide](global-id.md) - Custom GlobalId implementations
