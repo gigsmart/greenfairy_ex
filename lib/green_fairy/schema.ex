@@ -384,10 +384,17 @@ defmodule GreenFairy.Schema do
           import_types(unquote(cql_types_module))
         end,
         # Import period types for datetime operators
+        # Each import_types is separate to ensure proper macro expansion
         quote do
           import_types(GreenFairy.CQL.Scalars.DateTime.PeriodDirection)
+        end,
+        quote do
           import_types(GreenFairy.CQL.Scalars.DateTime.PeriodUnit)
+        end,
+        quote do
           import_types(GreenFairy.CQL.Scalars.DateTime.PeriodInput)
+        end,
+        quote do
           import_types(GreenFairy.CQL.Scalars.DateTime.CurrentPeriodInput)
         end
         # Inject filter/order types directly into schema
