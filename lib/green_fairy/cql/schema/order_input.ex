@@ -97,11 +97,16 @@ defmodule GreenFairy.CQL.Schema.OrderInput do
 
     all_fields = field_defs ++ assoc_defs
 
-    # Use fully qualified macro call to ensure proper expansion
-    quote do
-      Absinthe.Schema.Notation.input_object unquote(identifier) do
-        @desc unquote(description)
-        unquote_splicing(all_fields)
+    # Don't generate empty input objects - Absinthe doesn't allow them
+    if all_fields == [] do
+      nil
+    else
+      # Use fully qualified macro call to ensure proper expansion
+      quote do
+        Absinthe.Schema.Notation.input_object unquote(identifier) do
+          @desc unquote(description)
+          unquote_splicing(all_fields)
+        end
       end
     end
   end

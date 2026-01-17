@@ -177,12 +177,13 @@ defmodule GreenFairy.CQL do
     # Get associations from the struct module for nested filtering
     association_fields = get_association_fields(struct_module)
 
-    # Generate filter and order input types directly in this module
-    # This ensures they exist before Absinthe's @before_compile validates type references
+    # Generate filter input type directly in this module
+    # This ensures it exists before Absinthe's @before_compile validates type references
     filter_input_ast =
       FilterInput.generate(type_name, filter_fields, custom_filter_meta, association_fields)
 
-    order_input_ast = OrderInput.generate(type_name, filter_fields, association_fields)
+    # Note: Order input types are NOT generated here. They are generated via
+    # __cql_generate_order_input__/0 during schema compilation to avoid duplicates.
 
     generate_cql_functions_and_types(
       filter_function_clauses,
@@ -196,7 +197,6 @@ defmodule GreenFairy.CQL do
       type_identifier,
       filter_fields,
       filter_input_ast,
-      order_input_ast,
       association_fields
     )
   end
@@ -316,7 +316,6 @@ defmodule GreenFairy.CQL do
          type_identifier,
          filter_fields,
          filter_input_ast,
-         order_input_ast,
          association_fields
        ) do
     filter_input_identifier = FilterInput.filter_type_identifier(type_name)
@@ -326,8 +325,8 @@ defmodule GreenFairy.CQL do
       # This ensures it exists before Absinthe's schema validation runs
       unquote(filter_input_ast)
 
-      # Generate order input type directly in this module
-      unquote(order_input_ast)
+      # Note: Order input types are generated via __cql_generate_order_input__/0
+      # during schema compilation, not here, to avoid duplicate type definitions
       unquote_splicing(filter_clauses)
 
       def __cql_apply_custom_filter__(_field, query, _op, _value), do: query
