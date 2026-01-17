@@ -320,7 +320,6 @@ defmodule GreenFairy.Schema do
       ]
       |> List.flatten()
       |> Enum.reject(&is_nil/1)
-      # Filter out any non-AST values (like raw integers) that might have leaked in
       |> Enum.filter(&is_tuple/1)
 
     {:__block__, [], statements}
@@ -398,8 +397,7 @@ defmodule GreenFairy.Schema do
           import_types(GreenFairy.CQL.Scalars.DateTime.CurrentPeriodInput)
         end
         # Inject filter/order types directly into schema
-        | all_type_asts
-      ]
+      ] ++ all_type_asts
     end
   end
 
@@ -516,6 +514,9 @@ defmodule GreenFairy.Schema do
   end
 
   # Generate query block with explicit module import_fields and expose fields
+  # IMPORTANT: expose fields must come BEFORE import_fields to avoid unused literal warnings
+  # This appears to be an Absinthe/Elixir quirk with how import_fields interacts with
+  # subsequent statements in the same block
   defp generate_query_with_explicit_and_expose(explicit_module, nil) do
     identifier = explicit_module.__green_fairy_query_fields_identifier__()
 
@@ -529,10 +530,17 @@ defmodule GreenFairy.Schema do
   defp generate_query_with_explicit_and_expose(explicit_module, expose_ast) do
     identifier = explicit_module.__green_fairy_query_fields_identifier__()
 
+    # Wrap expose_ast in list for unquote_splicing
+    expose_statements =
+      case expose_ast do
+        {:__block__, _, stmts} -> stmts
+        single -> [single]
+      end
+
     quote do
       query do
+        unquote_splicing(expose_statements)
         import_fields unquote(identifier)
-        unquote(expose_ast)
       end
     end
   end
@@ -543,71 +551,54 @@ defmodule GreenFairy.Schema do
   defp generate_expose_query_fields(expose_fields) do
     field_asts =
       Enum.map(expose_fields, fn expose_def ->
-        generate_single_expose_field(expose_def)
+        field_name = expose_def.field
+        type_name = expose_def.type_name
+        type_identifier = expose_def.type_identifier
+        struct_module = expose_def.struct_module
+        repo = expose_def.repo
+        opts = expose_def.opts || []
+        arg_type = get_field_type_from_adapter(struct_module, field_name)
+
+        # Determine query field name
+        query_field_name =
+          if field_name == :id do
+            Keyword.get(opts, :as, type_identifier)
+          else
+            # credo:disable-for-next-line Credo.Check.Warning.UnsafeToAtom
+            Keyword.get(opts, :as, :"#{type_identifier}_by_#{field_name}")
+          end
+
+        quote do
+          field unquote(query_field_name), unquote(type_identifier) do
+            arg(unquote(field_name), non_null(unquote(arg_type)))
+
+            resolve(fn _, args, ctx ->
+              field_value = Map.get(args, unquote(field_name))
+              struct_mod = unquote(struct_module)
+              repo_mod = Map.get(ctx, :repo) || unquote(repo)
+
+              result =
+                if unquote(field_name) == :id do
+                  case GreenFairy.GlobalId.decode_id(field_value) do
+                    {:ok, {_, local_id}} -> repo_mod.get(struct_mod, local_id)
+                    {:error, _} -> repo_mod.get(struct_mod, field_value)
+                  end
+                else
+                  repo_mod.get_by(struct_mod, [{unquote(field_name), field_value}])
+                end
+
+              case result do
+                nil -> {:error, "#{unquote(type_name)} not found"}
+                record -> {:ok, record}
+              end
+            end)
+          end
+        end
       end)
 
     {:__block__, [], field_asts}
   end
 
-  defp generate_single_expose_field(expose_def) do
-    field_name = expose_def.field
-    type_name = expose_def.type_name
-    type_identifier = expose_def.type_identifier
-    struct_module = expose_def.struct_module
-    repo = expose_def.repo
-    opts = expose_def.opts || []
-
-    # Determine query field name
-    query_field_name =
-      if field_name == :id do
-        # For :id, use the type name (e.g., :user)
-        Keyword.get(opts, :as, type_identifier)
-      else
-        # For other fields, use type_by_field (e.g., :user_by_email)
-        # credo:disable-for-next-line Credo.Check.Warning.UnsafeToAtom
-        Keyword.get(opts, :as, :"#{type_identifier}_by_#{field_name}")
-      end
-
-    # Get field type from the struct's adapter
-    arg_type = get_field_type_from_adapter(struct_module, field_name)
-
-    quote do
-      field unquote(query_field_name), unquote(type_identifier) do
-        arg(unquote(field_name), non_null(unquote(arg_type)))
-
-        resolve(fn _parent, args, ctx ->
-          field_value = Map.get(args, unquote(field_name))
-          struct_module = unquote(struct_module)
-          repo = Map.get(ctx, :repo) || unquote(repo)
-
-          if struct_module && repo do
-            result =
-              if unquote(field_name) == :id do
-                # For :id field, decode GlobalId first
-                case GreenFairy.GlobalId.decode_id(field_value) do
-                  {:ok, {_type_name, local_id}} ->
-                    repo.get(struct_module, local_id)
-
-                  {:error, _} ->
-                    # Try as raw ID
-                    repo.get(struct_module, field_value)
-                end
-              else
-                # For other fields, use get_by
-                repo.get_by(struct_module, [{unquote(field_name), field_value}])
-              end
-
-            case result do
-              nil -> {:error, "#{unquote(type_name)} not found"}
-              record -> {:ok, record}
-            end
-          else
-            {:error, "Cannot resolve #{unquote(type_name)}: no struct or repo configured"}
-          end
-        end)
-      end
-    end
-  end
 
   # Get field type from the struct's adapter
   defp get_field_type_from_adapter(nil, _field), do: :string
