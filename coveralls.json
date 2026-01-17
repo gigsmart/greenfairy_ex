@@ -1,0 +1,12 @@
+{
+  "skip_files": [
+    "test/support/",
+    "lib/mix/tasks/",
+    "lib/green_fairy/relay/mutation.ex",
+    "lib/green_fairy/relay/node.ex"
+  ],
+  "coverage_options": {
+    "minimum_coverage": 85,
+    "treat_no_relevant_lines_as_covered": true
+  }
+}

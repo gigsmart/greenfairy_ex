@@ -1,79 +1,81 @@
-# Absinthe.Object
+<p align="center">
+  <img src="assets/logo.svg" alt="GreenFairy Logo" width="200">
+</p>
 
-A cleaner DSL for GraphQL schema definitions built on [Absinthe](https://github.com/absinthe-graphql/absinthe).
+<h1 align="center">GreenFairy</h1>
 
-## Overview
+<p align="center">
+  <a href="https://hex.pm/packages/green_fairy"><img src="https://img.shields.io/hexpm/v/green_fairy.svg" alt="Hex.pm"></a>
+  <a href="https://hexdocs.pm/green_fairy"><img src="https://img.shields.io/badge/docs-hexdocs-blue.svg" alt="Documentation"></a>
+  <a href="https://github.com/GreenFairy-GraphQL/greenfairy/actions"><img src="https://github.com/GreenFairy-GraphQL/greenfairy/workflows/CI/badge.svg" alt="CI"></a>
+</p>
 
-Absinthe.Object provides a streamlined way to define GraphQL schemas following SOLID principles:
-- **One module = one type** - Each GraphQL type lives in its own file
-- **Convention over configuration** - Smart defaults reduce boilerplate
-- **Auto-discovery** - Types are automatically discovered and registered
-- **Extensible** - Build custom DSL extensions like query languages on top
+<p align="center">
+  A cleaner DSL for GraphQL schema definitions built on <a href="https://github.com/absinthe-graphql/absinthe">Absinthe</a>.
+</p>
+
+---
+
+> **⚠️ Experimental:** GreenFairy is in early development. The API may change between versions.
+
+## Features
+
+- **One module = one type** — SOLID principles with auto-discovery
+- **CQL filtering** — Hasura-style `where` and `orderBy` on every connection
+- **Multi-database** — PostgreSQL, MySQL, SQLite, MSSQL, ClickHouse, Elasticsearch
+- **DataLoader** — Batched association resolution built-in
+- **Relay** — Cursor pagination, global IDs, Node interface
+- **Authorization** — Type-owned field visibility
 
 ## Installation
 
-Add `absinthe_object` to your list of dependencies in `mix.exs`:
-
 ```elixir
 def deps do
-  [
-    {:absinthe_object, "~> 0.1.0"}
-  ]
+  [{:green_fairy, "~> 0.1.0"}]
 end
 ```
 
-## Quick Start
-
-### Define a Type
+## Quick Example
 
 ```elixir
 defmodule MyApp.GraphQL.Types.User do
-  use Absinthe.Object.Type
+  use GreenFairy.Type
 
   type "User", struct: MyApp.User do
-    implements MyApp.GraphQL.Interfaces.Node
-
-    field :email, :string, null: false
+    field :id, non_null(:id)
     field :name, :string
+    field :email, non_null(:string)
 
-    belongs_to :organization, MyApp.GraphQL.Types.Organization
-    has_many :posts, MyApp.GraphQL.Types.Post
-
-    connection :friends, MyApp.GraphQL.Types.User do
-      edge do
-        field :friendship_date, :datetime
-      end
-    end
+    connection :posts, MyApp.GraphQL.Types.Post
   end
 end
 ```
 
-### Define an Interface
-
-```elixir
-defmodule MyApp.GraphQL.Interfaces.Node do
-  use Absinthe.Object.Interface
-
-  interface "Node" do
-    field :id, :id, null: false
-    # resolve_type is auto-generated from types that call `implements`!
-  end
-end
-```
-
-### Define the Schema
-
-```elixir
-defmodule MyApp.GraphQL.Schema do
-  use Absinthe.Object.Schema,
-    discover: [MyApp.GraphQL]
-end
+```graphql
+query {
+  users(where: { email: { _ilike: "%@example.com" } }, first: 10) {
+    nodes { id name email }
+    pageInfo { hasNextPage endCursor }
+  }
+}
 ```
 
 ## Documentation
 
-See [PLAN.md](PLAN.md) for the complete implementation plan and DSL reference.
+- [HexDocs](https://hexdocs.pm/green_fairy) — Full API documentation
+- [Getting Started](https://hexdocs.pm/green_fairy/getting-started.html) — Installation and first schema
+- [CQL Guide](https://hexdocs.pm/green_fairy/cql.html) — Filtering, sorting, multi-database
+
+## Links
+
+- [GitHub](https://github.com/GreenFairy-GraphQL/greenfairy)
+- [Hex.pm](https://hex.pm/packages/green_fairy)
+- [Changelog](https://github.com/GreenFairy-GraphQL/greenfairy/blob/main/CHANGELOG.md)
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) for details.
+MIT — see [LICENSE](https://github.com/GreenFairy-GraphQL/greenfairy/blob/main/LICENSE)
+
+## Contributing
+
+See [CONTRIBUTING.md](https://github.com/GreenFairy-GraphQL/greenfairy/blob/main/CONTRIBUTING.md) for guidelines.
