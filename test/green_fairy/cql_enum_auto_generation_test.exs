@@ -265,7 +265,7 @@ defmodule GreenFairy.CQL.EnumAutoGenerationTest do
       # Should generate 4 inputs (scalar + array for each enum)
       assert length(operator_asts) == 4
 
-      all_ast_string = operator_asts |> Enum.map(&Macro.to_string/1) |> Enum.join("\n")
+      all_ast_string = Enum.map_join(operator_asts, "\n", &Macro.to_string/1)
 
       assert all_ast_string =~ "cql_enum_order_status_input"
       assert all_ast_string =~ "cql_enum_order_status_array_input"

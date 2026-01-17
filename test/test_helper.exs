@@ -1,3 +1,7 @@
+# Ensure TypeRegistry ETS table is created before any tests run
+# This is needed because tests may call functions that check the registry
+GreenFairy.TypeRegistry.init()
+
 # Force load filter implementation modules to trigger registration
 # These modules register themselves at compile time, but we need to ensure
 # they're loaded before tests run to populate the persistent_term registry

@@ -1,8 +1,8 @@
 defmodule GreenFairy.CQL.QueryCompilerTest do
   use ExUnit.Case, async: true
 
-  alias GreenFairy.CQL.QueryCompiler
   alias GreenFairy.CQL.Adapters.Postgres, as: TestAdapter
+  alias GreenFairy.CQL.QueryCompiler
 
   # Test schemas for compilation tests
   defmodule Organization do

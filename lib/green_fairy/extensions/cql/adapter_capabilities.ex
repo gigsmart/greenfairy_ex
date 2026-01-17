@@ -359,8 +359,7 @@ defmodule GreenFairy.CQL.AdapterCapabilities do
       capabilities
       |> Map.to_list()
       |> Enum.filter(fn {_k, v} -> is_boolean(v) && v end)
-      |> Enum.map(fn {k, _} -> "  ✓ #{format_feature(k)}" end)
-      |> Enum.join("\n")
+      |> Enum.map_join("\n", fn {k, _} -> "  ✓ #{format_feature(k)}" end)
 
     features_section =
       if features != "" do

@@ -3,8 +3,8 @@ defmodule GreenFairy.CQL.Adapters.EctoAdapterTest do
 
   require Ecto.Query
 
-  alias GreenFairy.CQL.Scalars.String, as: StringScalar
   alias GreenFairy.CQL.Scalars.ArrayString
+  alias GreenFairy.CQL.Scalars.String, as: StringScalar
 
   # Simple test schema for query building
   defmodule TestSchema do

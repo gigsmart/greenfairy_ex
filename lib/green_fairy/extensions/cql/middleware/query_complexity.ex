@@ -432,9 +432,7 @@ defmodule GreenFairy.Middleware.QueryComplexity do
   end
 
   defp format_suggestions(suggestions) do
-    suggestions
-    |> Enum.map(fn s -> "    - #{s}" end)
-    |> Enum.join("\n")
+    Enum.map_join(suggestions, "\n", fn s -> "    - #{s}" end)
   end
 
   # === Error Response ===

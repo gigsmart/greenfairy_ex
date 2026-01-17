@@ -1,11 +1,11 @@
 defmodule GreenFairy.CQL.AdaptersTest do
   use ExUnit.Case, async: true
 
-  alias GreenFairy.CQL.Adapters.MySQL
-  alias GreenFairy.CQL.Adapters.SQLite
-  alias GreenFairy.CQL.Adapters.MSSQL
-  alias GreenFairy.CQL.Adapters.Postgres
   alias GreenFairy.CQL.Adapters.Elasticsearch
+  alias GreenFairy.CQL.Adapters.MSSQL
+  alias GreenFairy.CQL.Adapters.MySQL
+  alias GreenFairy.CQL.Adapters.Postgres
+  alias GreenFairy.CQL.Adapters.SQLite
 
   defmodule TestSchema do
     use Ecto.Schema
