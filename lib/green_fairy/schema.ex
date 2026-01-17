@@ -599,7 +599,6 @@ defmodule GreenFairy.Schema do
     {:__block__, [], field_asts}
   end
 
-
   # Get field type from the struct's adapter
   defp get_field_type_from_adapter(nil, _field), do: :string
 
